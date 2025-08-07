@@ -14,7 +14,7 @@ export default function LoyaltyCard({ user }: LoyaltyCardProps) {
   const memberId = user?.id ? `MV-${user.id.slice(-9)}` : 'MV-000000000';
 
   return (
-    <div className="bg-gradient-to-br from-primary to-gray-800 rounded-2xl p-6 text-white shadow-lg" data-testid="card-loyalty">
+    <div className="bg-gradient-to-br from-maverick-dark-gray to-black rounded-2xl p-6 text-white shadow-lg" data-testid="card-loyalty">
       <div className="flex justify-between items-start mb-6">
         <div className="flex items-center space-x-2">
           <img src={maverickLogo} alt="Maverick" className="h-6 w-auto brightness-0 invert" />
@@ -23,8 +23,8 @@ export default function LoyaltyCard({ user }: LoyaltyCardProps) {
             <p className="text-sm opacity-75">Loyalty Member</p>
           </div>
         </div>
-        <div className="bg-white bg-opacity-20 px-3 py-1 rounded-full">
-          <span className="text-xs font-medium uppercase" data-testid="text-membership-tier">
+        <div className="bg-maverick-bright-yellow bg-opacity-20 px-3 py-1 rounded-full border border-maverick-bright-yellow">
+          <span className="text-xs font-medium uppercase text-maverick-bright-yellow" data-testid="text-membership-tier">
             {membershipTier}
           </span>
         </div>

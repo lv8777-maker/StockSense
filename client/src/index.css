@@ -4,24 +4,24 @@
 
 :root {
   --background: hsl(0 0% 100%);
-  --foreground: hsl(210 25% 7.8431%);
+  --foreground: hsl(0 0% 23.5%); /* #3C3C3B - Maverick Dark Gray */
   --card: hsl(180 6.6667% 97.0588%);
-  --card-foreground: hsl(210 25% 7.8431%);
+  --card-foreground: hsl(0 0% 23.5%); /* #3C3C3B - Maverick Dark Gray */
   --popover: hsl(0 0% 100%);
-  --popover-foreground: hsl(210 25% 7.8431%);
-  --primary: hsl(0 0% 20%); /* Maverick dark gray */
+  --popover-foreground: hsl(0 0% 23.5%); /* #3C3C3B - Maverick Dark Gray */
+  --primary: hsl(0 0% 23.5%); /* #3C3C3B - Maverick Dark Gray */
   --primary-foreground: hsl(0 0% 100%);
   --secondary: hsl(0 0% 96%);
-  --secondary-foreground: hsl(0 0% 20%);
+  --secondary-foreground: hsl(0 0% 23.5%); /* #3C3C3B - Maverick Dark Gray */
   --muted: hsl(0 0% 96%);
-  --muted-foreground: hsl(0 0% 45%);
-  --accent: hsl(48 100% 50%); /* Maverick yellow */
-  --accent-foreground: hsl(0 0% 20%);
+  --muted-foreground: hsl(0 0% 65.5%); /* #A7A9AC - Maverick Light Gray */
+  --accent: hsl(48 100% 49.4%); /* #FDC800 - Maverick Bright Yellow */
+  --accent-foreground: hsl(0 0% 23.5%); /* #3C3C3B - Maverick Dark Gray */
   --destructive: hsl(356.3033 90.5579% 54.3137%);
   --destructive-foreground: hsl(0 0% 100%);
   --border: hsl(201.4286 30.4348% 90.9804%);
   --input: hsl(200 23.0769% 97.4510%);
-  --ring: hsl(202.8169 89.1213% 53.1373%);
+  --ring: hsl(0 0% 23.5%); /* #3C3C3B - Maverick Dark Gray */
   --chart-1: hsl(203.8863 88.2845% 53.1373%);
   --chart-2: hsl(159.7826 100% 36.0784%);
   --chart-3: hsl(42.0290 92.8251% 56.2745%);
@@ -51,7 +51,21 @@
   --spacing: 0.25rem;
   /* Custom Maverick colors */
   --success: hsl(120 61% 34%);
+  --maverick-dark-gray: #3C3C3B;
+  --maverick-bright-yellow: #FDC800;
+  --maverick-light-gray: #A7A9AC;
 }
+
+/* Custom Maverick utility classes */
+.bg-maverick-dark-gray { background-color: #3C3C3B; }
+.bg-maverick-bright-yellow { background-color: #FDC800; }
+.bg-maverick-light-gray { background-color: #A7A9AC; }
+.text-maverick-dark-gray { color: #3C3C3B; }
+.text-maverick-bright-yellow { color: #FDC800; }
+.text-maverick-light-gray { color: #A7A9AC; }
+.border-maverick-dark-gray { border-color: #3C3C3B; }
+.border-maverick-bright-yellow { border-color: #FDC800; }
+.border-maverick-light-gray { border-color: #A7A9AC; }
 
 .dark {
   --background: hsl(0 0% 0%);
@@ -60,19 +74,19 @@
   --card-foreground: hsl(0 0% 85.0980%);
   --popover: hsl(0 0% 0%);
   --popover-foreground: hsl(200 6.6667% 91.1765%);
-  --primary: hsl(48 100% 50%); /* Maverick yellow in dark mode */
-  --primary-foreground: hsl(0 0% 15%);
+  --primary: hsl(48 100% 49.4%); /* #FDC800 - Maverick Bright Yellow in dark mode */
+  --primary-foreground: hsl(0 0% 23.5%); /* #3C3C3B - Maverick Dark Gray */
   --secondary: hsl(0 0% 20%);
   --secondary-foreground: hsl(0 0% 95%);
   --muted: hsl(0 0% 15%);
   --muted-foreground: hsl(0 0% 65%);
-  --accent: hsl(48 100% 50%); /* Maverick yellow */
-  --accent-foreground: hsl(0 0% 15%);
+  --accent: hsl(48 100% 49.4%); /* #FDC800 - Maverick Bright Yellow */
+  --accent-foreground: hsl(0 0% 23.5%); /* #3C3C3B - Maverick Dark Gray */
   --destructive: hsl(356.3033 90.5579% 54.3137%);
   --destructive-foreground: hsl(0 0% 100%);
   --border: hsl(210 5.2632% 14.9020%);
   --input: hsl(207.6923 27.6596% 18.4314%);
-  --ring: hsl(202.8169 89.1213% 53.1373%);
+  --ring: hsl(48 100% 49.4%); /* #FDC800 - Maverick Bright Yellow for dark mode */
   --chart-1: hsl(203.8863 88.2845% 53.1373%);
   --chart-2: hsl(159.7826 100% 36.0784%);
   --chart-3: hsl(42.0290 92.8251% 56.2745%);
