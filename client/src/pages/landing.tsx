@@ -5,7 +5,7 @@ import maverickLogo from "@/assets/maverick-logo.png";
 
 export default function Landing() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -19,7 +19,7 @@ export default function Landing() {
             </div>
             <Button 
               onClick={() => window.location.href = '/api/login'}
-              className="bg-primary hover:bg-blue-700"
+              className="bg-primary hover:bg-primary/90"
               data-testid="button-login"
             >
               Sign In
@@ -42,7 +42,7 @@ export default function Landing() {
             <Button 
               onClick={() => window.location.href = '/api/login'}
               size="lg"
-              className="bg-primary hover:bg-blue-700 text-lg px-8 py-3"
+              className="bg-primary hover:bg-primary/90 text-lg px-8 py-3"
               data-testid="button-get-started"
             >
               Get Started Today
@@ -104,8 +104,8 @@ export default function Landing() {
 
             <Card className="text-center">
               <CardHeader>
-                <div className="bg-purple-100 p-3 rounded-lg w-fit mx-auto mb-4">
-                  <Award className="h-8 w-8 text-purple-600" />
+                <div className="bg-maverick-bright-yellow bg-opacity-20 p-3 rounded-lg w-fit mx-auto mb-4">
+                  <Award className="h-8 w-8 text-maverick-dark-gray" />
                 </div>
                 <CardTitle className="text-lg">VIP Status</CardTitle>
               </CardHeader>
@@ -125,7 +125,7 @@ export default function Landing() {
           <h2 className="text-3xl font-bold text-white mb-4">
             Ready to Start Earning Rewards?
           </h2>
-          <p className="text-xl text-blue-100 mb-8">
+          <p className="text-xl text-gray-100 mb-8">
             Join thousands of satisfied customers who are already enjoying the benefits.
           </p>
           <Button 
@@ -135,7 +135,7 @@ export default function Landing() {
             className="bg-white text-primary hover:bg-gray-100 text-lg px-8 py-3"
             data-testid="button-join-now"
           >
-            Join CustomerConnect Now
+            Join Maverick Now
           </Button>
         </div>
       </div>
