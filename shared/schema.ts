@@ -162,36 +162,41 @@ export const socialConnectionsRelations = relations(socialConnections, ({ one })
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 
+// Additional types for API responses
+export type Transaction = typeof transactions.$inferSelect;
+export type InsertTransaction = typeof transactions.$inferInsert;
+
+export type Reward = typeof rewards.$inferSelect;
+export type InsertReward = typeof rewards.$inferInsert;
+
+export type Redemption = typeof redemptions.$inferSelect;
+export type InsertRedemption = typeof redemptions.$inferInsert;
+
+export type Offer = typeof offers.$inferSelect;
+export type InsertOffer = typeof offers.$inferInsert;
+
 export const insertRewardSchema = createInsertSchema(rewards).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
   redemptionCount: true,
 });
-export type InsertReward = z.infer<typeof insertRewardSchema>;
-export type Reward = typeof rewards.$inferSelect;
 
 export const insertTransactionSchema = createInsertSchema(transactions).omit({
   id: true,
   createdAt: true,
 });
-export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
-export type Transaction = typeof transactions.$inferSelect;
 
 export const insertRedemptionSchema = createInsertSchema(redemptions).omit({
   id: true,
   redeemedAt: true,
   redemptionCode: true,
 });
-export type InsertRedemption = z.infer<typeof insertRedemptionSchema>;
-export type Redemption = typeof redemptions.$inferSelect;
 
 export const insertOfferSchema = createInsertSchema(offers).omit({
   id: true,
   createdAt: true,
 });
-export type InsertOffer = z.infer<typeof insertOfferSchema>;
-export type Offer = typeof offers.$inferSelect;
 
 export const insertSocialConnectionSchema = createInsertSchema(socialConnections).omit({
   id: true,

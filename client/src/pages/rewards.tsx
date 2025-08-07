@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import RewardCard from "@/components/RewardCard";
+import type { Reward } from "@shared/schema";
 
 export default function Rewards() {
   const { user } = useAuth();
@@ -14,7 +15,7 @@ export default function Rewards() {
   const queryClient = useQueryClient();
   const [selectedCategory, setSelectedCategory] = useState("all");
 
-  const { data: rewards = [], isLoading } = useQuery({
+  const { data: rewards = [], isLoading } = useQuery<Reward[]>({
     queryKey: ["/api/rewards"],
   });
 
@@ -49,9 +50,9 @@ export default function Rewards() {
 
   const filteredRewards = selectedCategory === "all" 
     ? rewards 
-    : rewards.filter((reward: any) => reward.category === selectedCategory);
+    : rewards.filter((reward: Reward) => reward.category === selectedCategory);
 
-  const handleRedeem = (reward: any) => {
+  const handleRedeem = (reward: Reward) => {
     if (!user || user.totalPoints < reward.pointsCost) {
       toast({
         title: "Insufficient Points",
@@ -71,8 +72,8 @@ export default function Rewards() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">Rewards Catalog</h2>
-          <p className="text-gray-600">Redeem your points for amazing rewards</p>
+          <h2 className="text-3xl font-bold text-gray-900 mb-2">Maverick Rewards</h2>
+          <p className="text-gray-600">Redeem your points for exclusive Maverick rewards</p>
         </div>
         <div className="bg-primary text-white px-4 py-2 rounded-lg">
           <span className="text-sm font-medium" data-testid="text-available-points">

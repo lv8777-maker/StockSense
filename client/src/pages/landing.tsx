@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Gift, Star, Users, Award } from "lucide-react";
+import maverickLogo from "@/assets/maverick-logo.png";
 
 export default function Landing() {
   return (
@@ -10,8 +11,11 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
-              <h1 className="text-2xl font-bold text-primary">CustomerConnect</h1>
-              <span className="text-sm text-gray-500 hidden md:block">Loyalty Program</span>
+              <img src={maverickLogo} alt="Maverick" className="h-8 w-auto" />
+              <div className="flex flex-col">
+                <h1 className="text-xl font-bold text-primary">Maverick</h1>
+                <span className="text-xs text-gray-500">Loyalty Program</span>
+              </div>
             </div>
             <Button 
               onClick={() => window.location.href = '/api/login'}
@@ -32,7 +36,7 @@ export default function Landing() {
               Transform Your <span className="text-primary">Loyalty Experience</span>
             </h1>
             <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-              Join CustomerConnect and earn points with every purchase. Redeem amazing rewards,
+              Join Maverick's loyalty program and earn points with every purchase. Redeem amazing rewards,
               get personalized offers, and enjoy exclusive benefits designed just for you.
             </p>
             <Button 
@@ -51,7 +55,7 @@ export default function Landing() {
       <div className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Why Choose CustomerConnect?</h2>
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Why Choose Maverick?</h2>
             <p className="text-lg text-gray-600">Discover the benefits of our modern loyalty program</p>
           </div>
 

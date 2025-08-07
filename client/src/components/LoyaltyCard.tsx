@@ -1,5 +1,8 @@
+import type { User } from "@shared/schema";
+import maverickLogo from "@/assets/maverick-logo.png";
+
 interface LoyaltyCardProps {
-  user: any;
+  user: User | null | undefined;
 }
 
 export default function LoyaltyCard({ user }: LoyaltyCardProps) {
@@ -8,14 +11,17 @@ export default function LoyaltyCard({ user }: LoyaltyCardProps) {
     ? new Date(user.memberSince).toLocaleDateString('en-US', { month: '2-digit', year: '2-digit' })
     : '12/25';
   
-  const memberId = user?.id ? `CC-${user.id.slice(-9)}` : 'CC-000000000';
+  const memberId = user?.id ? `MV-${user.id.slice(-9)}` : 'MV-000000000';
 
   return (
-    <div className="bg-gradient-to-br from-primary to-blue-600 rounded-2xl p-6 text-white shadow-lg" data-testid="card-loyalty">
+    <div className="bg-gradient-to-br from-primary to-gray-800 rounded-2xl p-6 text-white shadow-lg" data-testid="card-loyalty">
       <div className="flex justify-between items-start mb-6">
-        <div>
-          <h4 className="text-lg font-semibold opacity-90">CustomerConnect</h4>
-          <p className="text-sm opacity-75">Premium Member</p>
+        <div className="flex items-center space-x-2">
+          <img src={maverickLogo} alt="Maverick" className="h-6 w-auto brightness-0 invert" />
+          <div>
+            <h4 className="text-lg font-semibold opacity-90">Maverick</h4>
+            <p className="text-sm opacity-75">Loyalty Member</p>
+          </div>
         </div>
         <div className="bg-white bg-opacity-20 px-3 py-1 rounded-full">
           <span className="text-xs font-medium uppercase" data-testid="text-membership-tier">

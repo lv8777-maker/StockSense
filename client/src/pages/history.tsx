@@ -19,11 +19,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Download, ShoppingCart, DollarSign, Coins } from "lucide-react";
+import type { Transaction } from "@shared/schema";
 
 export default function History() {
   const [filterPeriod, setFilterPeriod] = useState("all");
 
-  const { data: transactions = [], isLoading } = useQuery({
+  const { data: transactions = [], isLoading } = useQuery<Transaction[]>({
     queryKey: ["/api/transactions"],
   });
 
@@ -44,11 +45,11 @@ export default function History() {
     return <Badge variant="outline">{status}</Badge>;
   };
 
-  const getPointsDisplay = (transaction: any) => {
-    if (transaction.pointsEarned > 0) {
+  const getPointsDisplay = (transaction: Transaction) => {
+    if ((transaction.pointsEarned || 0) > 0) {
       return <span className="text-success font-medium">+{transaction.pointsEarned} pts</span>;
     }
-    if (transaction.pointsSpent > 0) {
+    if ((transaction.pointsSpent || 0) > 0) {
       return <span className="text-red-600 font-medium">-{transaction.pointsSpent} pts</span>;
     }
     return <span className="text-gray-500">0 pts</span>;
@@ -63,8 +64,8 @@ export default function History() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">Purchase History</h2>
-          <p className="text-gray-600">Track your purchases and earned points</p>
+          <h2 className="text-3xl font-bold text-gray-900 mb-2">Transaction History</h2>
+          <p className="text-gray-600">Track your Maverick purchases and earned points</p>
         </div>
         <div className="flex space-x-4">
           <Select value={filterPeriod} onValueChange={setFilterPeriod} data-testid="select-filter-period">

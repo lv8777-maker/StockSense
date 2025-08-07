@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import LoyaltyCard from "@/components/LoyaltyCard";
 import { Link } from "wouter";
+import type { Transaction, Offer } from "@shared/schema";
 import { 
   Coins, 
   Gift, 
@@ -20,11 +21,11 @@ import {
 export default function Dashboard() {
   const { user } = useAuth();
   
-  const { data: transactions = [] } = useQuery({
+  const { data: transactions = [] } = useQuery<Transaction[]>({
     queryKey: ["/api/transactions"],
   });
 
-  const { data: offers = [] } = useQuery({
+  const { data: offers = [] } = useQuery<Offer[]>({
     queryKey: ["/api/offers"],
   });
 
@@ -35,8 +36,8 @@ export default function Dashboard() {
   const recentTransactions = transactions.slice(0, 3);
   const activeOffers = offers.slice(0, 2);
 
-  const membershipTier = user?.membershipTier || 'bronze';
-  const tierColors = {
+  const membershipTier = (user?.membershipTier as string) || 'bronze';
+  const tierColors: Record<string, string> = {
     bronze: 'bg-orange-100 text-orange-800',
     silver: 'bg-gray-100 text-gray-800',
     gold: 'bg-yellow-100 text-yellow-800',
@@ -54,7 +55,7 @@ export default function Dashboard() {
         <h2 className="text-3xl font-bold text-gray-900 mb-2">
           Welcome back, <span data-testid="text-user-name">{user?.firstName || 'Customer'}</span>!
         </h2>
-        <p className="text-gray-600">Manage your loyalty points and discover new rewards.</p>
+        <p className="text-gray-600">Manage your Maverick loyalty points and discover new rewards.</p>
       </div>
 
       {/* Stats Overview */}
@@ -100,7 +101,7 @@ export default function Dashboard() {
               <div>
                 <p className="text-sm font-medium text-gray-500">Total Purchases</p>
                 <p className="text-3xl font-bold text-success" data-testid="text-total-purchases">
-                  {transactionStats?.totalPurchases || 0}
+                  {(transactionStats as any)?.totalPurchases || 0}
                 </p>
               </div>
               <div className="bg-success bg-opacity-10 p-3 rounded-lg">
@@ -181,15 +182,15 @@ export default function Dashboard() {
               </p>
             ) : (
               <div className="space-y-4">
-                {recentTransactions.map((transaction: any) => (
+                {recentTransactions.map((transaction: Transaction) => (
                   <div key={transaction.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div className="flex items-center space-x-3">
                       <div className={`p-2 rounded-lg ${
-                        transaction.pointsEarned > 0 
+                        (transaction.pointsEarned || 0) > 0 
                           ? 'bg-success bg-opacity-10' 
                           : 'bg-red-100'
                       }`}>
-                        {transaction.pointsEarned > 0 ? (
+                        {(transaction.pointsEarned || 0) > 0 ? (
                           <Plus className="text-success h-4 w-4" />
                         ) : (
                           <Minus className="text-red-600 h-4 w-4" />
@@ -200,17 +201,17 @@ export default function Dashboard() {
                           {transaction.description}
                         </p>
                         <p className="text-sm text-gray-500">
-                          {new Date(transaction.createdAt).toLocaleDateString()}
+                          {transaction.createdAt ? new Date(transaction.createdAt).toLocaleDateString() : 'N/A'}
                         </p>
                       </div>
                     </div>
                     <div className="text-right">
                       <p className={`font-medium ${
-                        transaction.pointsEarned > 0 ? 'text-success' : 'text-red-600'
+                        (transaction.pointsEarned || 0) > 0 ? 'text-success' : 'text-red-600'
                       }`} data-testid={`text-transaction-points-${transaction.id}`}>
-                        {transaction.pointsEarned > 0 
+                        {(transaction.pointsEarned || 0) > 0 
                           ? `+${transaction.pointsEarned} pts`
-                          : `-${transaction.pointsSpent} pts`
+                          : `-${transaction.pointsSpent || 0} pts`
                         }
                       </p>
                     </div>
@@ -238,7 +239,7 @@ export default function Dashboard() {
               </p>
             ) : (
               <div className="space-y-4">
-                {activeOffers.map((offer: any) => (
+                {activeOffers.map((offer: Offer) => (
                   <div key={offer.id} className="border border-accent border-opacity-30 bg-accent bg-opacity-5 rounded-lg p-4">
                     <div className="flex justify-between items-start mb-2">
                       <h4 className="font-medium text-gray-900" data-testid={`text-offer-title-${offer.id}`}>
@@ -253,7 +254,7 @@ export default function Dashboard() {
                     </p>
                     <div className="flex justify-between items-center">
                       <span className="text-xs text-gray-500">
-                        Expires: {new Date(offer.validUntil).toLocaleDateString()}
+                        Expires: {offer.validUntil ? new Date(offer.validUntil).toLocaleDateString() : 'No expiration'}
                       </span>
                       <Button size="sm" variant="ghost" className="text-accent hover:text-yellow-600" data-testid={`button-activate-offer-${offer.id}`}>
                         Activate

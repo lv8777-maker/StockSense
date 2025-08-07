@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ChevronDown, LogOut, User } from "lucide-react";
+import maverickLogo from "@/assets/maverick-logo.png";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -41,19 +42,20 @@ export default function Layout({ children }: LayoutProps) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
-              <div className="flex-shrink-0">
-                <h1 className="text-2xl font-bold text-primary">CustomerConnect</h1>
-              </div>
-              <div className="hidden md:block">
-                <span className="text-sm text-gray-500">Loyalty Program</span>
+              <div className="flex-shrink-0 flex items-center space-x-3">
+                <img src={maverickLogo} alt="Maverick" className="h-8 w-auto" />
+                <div className="flex flex-col">
+                  <h1 className="text-xl font-bold text-primary">Maverick</h1>
+                  <span className="text-xs text-gray-500 hidden md:block">Loyalty Program</span>
+                </div>
               </div>
             </div>
             
             {/* User Profile Section */}
             <div className="flex items-center space-x-4">
               <div className="hidden md:flex items-center space-x-2">
-                <Badge className="bg-accent text-white">
-                  <span data-testid="text-user-points">{user?.totalPoints || 0} Points</span>
+                <Badge className="bg-accent text-accent-foreground" data-testid="text-user-points">
+                  {user?.totalPoints || 0} Points
                 </Badge>
               </div>
               
