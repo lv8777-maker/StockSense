@@ -1,0 +1,74 @@
+Here is a prompt for Replit Agent, including a simplified Product Requirements Document (PRD), for creating a working web application based on the provided sources:
+
+***
+
+**Prompt for Replit Agent: Develop a Customer Loyalty Web Application**
+
+**As Replit Agent, your task is to create a functional web application based on the following Product Requirements Document (PRD). Your core objective is to build a robust foundation for a modern digital loyalty program, prioritizing key features and inherent security considerations.**
+
+---
+
+**Product Requirements Document (PRD): CustomerConnect Loyalty Web Application**
+
+**Version:** 1.0
+**Date:** October 26, 2023
+
+**1. Introduction & Purpose:**
+This web application aims to **transform traditional customer loyalty programs into a modern, digital experience** [i]. The primary goal is to **enhance customer engagement and retention** by providing a convenient, personalized loyalty platform [i]. This digital approach moves beyond physical cards, offering greater accessibility and convenience for users [i].
+
+**2. Target Audience:**
+*   **Customers** of a retail business, who will use the application to participate in the loyalty program, earn rewards, and redeem benefits.
+*   **Business Administrators**, who will manage customer data and loyalty program specifics.
+
+**3. Key Features (Functional Requirements):**
+The application must include the following core features:
+
+*   **User Registration & Profile Management**:
+    *   Enable customers to create accounts.
+    *   Offer the option for users to **connect their Social Media accounts** (e.g., Facebook, LinkedIn, Instagram) for initial data population, with a potential **reward for social sign-up** [i]. This helps in gathering useful customer information like age, gender, location, interests, and family details [i].
+*   **Digital Loyalty Card**:
+    *   Implement a **digital version of a loyalty card** within the web application interface [i].
+    *   This card should allow users to **easily access their discounts and earn points for purchases** [i].
+    *   The system should support the concept of **in-app currency (points)** that users can accrue and potentially use for payment [i].
+*   **Loyalty Wallet/Dashboard**:
+    *   Provide a dedicated section where customers can view their loyalty card details.
+    *   Display **purchase history** [i].
+    *   Show current **cash-back** balances or other accumulated rewards [i].
+*   **Reward Catalog & Redemption**:
+    *   Present a catalog of available rewards that users can browse.
+    *   Allow users to redeem their earned points for merchandise, goods, services, or discounts [i].
+*   **Personalized Offers & Notifications**:
+    *   The system should be capable of delivering **real-time reward updates and personalized offers** to users [i]. This personalization should be driven by collected customer data to provide customized recommendations and messages, making customers feel valued and engaged [i].
+
+**4. Technical Requirements & Considerations:**
+
+*   **Development Environment**: The application must be fully functional and runnable within the **Replit online integrated development environment (IDE)** [n].
+*   **AI Automation**: Leverage Replit Agent's capability to **automate software development processes** by interacting in natural language [n, o]. The application should be built as a "complete application by describing it in natural language" [o].
+*   **Integration Capabilities (Future Readiness)**:
+    *   The architecture should be designed to allow for future **integration with external digital infrastructure**, such as existing Customer Relationship Management (CRM) systems. This will likely require custom development to share customer lists or embed an Admin Panel for data exchange [i].
+    *   Consider compatibility for future integration with **digital wallet services** like Google Pay and Apple Wallet, which offer features like automatic loyalty card selection, Touch/Face ID activation, real-time updates, and the ability to enroll without downloading a full app [k].
+*   **Application Security (DevSecOps Principles)**:
+    *   **Security practices must be integrated throughout the Software Development Lifecycle (SDLC)** (DevSecOps approach) [i, p].
+    *   Implement **robust security protocols to mitigate common web application vulnerabilities**, such as:
+        *   **Rigorous input validation** [t].
+        *   **Utilization of parameterized statements for database interactions** to prevent injection attacks [t].
+        *   **Robust session management techniques** [t].
+        *   Avoid transmitting **raw server responses to clients** [t].
+    *   The design should consider **threat modeling** to identify, categorize, and prioritize potential security risks from the outset [t].
+    *   While not a full implementation requirement for this prompt, the application's codebase and architecture should be ready for continuous vulnerability management, including future integration with security tools like Static Application Security Testing (SAST) (e.g., SNYK, SonarQube), Dynamic Application Security Testing (DAST) (e.g., OWASP-Zap, Arachni), and Container Security scanning (e.g., Trivy, Grype) [q, t, u, v, x, y].
+    *   It is critical to build securely from the start, as web applications are a primary target for attackers, impacting data, reputation, and financial stability [j, t].
+*   **User Interface/User Experience (UI/UX)**:
+    *   The application should be **user-friendly** in its UI/UX design [i].
+    *   Maintain **consistency** with the general mood and style of a hypothetical brand [i].
+*   **Flexibility**: The system should be designed with flexibility to **try different kinds of loyalty program combinations** in the future, allowing for adaptation to various use cases [i].
+
+**5. Success Metrics:**
+*   Successful deployment and operation of all specified features within the Replit environment.
+*   Demonstration of core loyalty program functionalities (e.g., point accumulation, reward redemption).
+*   The application's design allows for future scalability and integration needs.
+
+**6. Out of Scope for V1.0:**
+*   Direct integration with physical Point-of-Sale (POS) systems.
+*   Advanced gamification features beyond points and basic rewards (e.g., tiered loyalty levels, leaderboards, "Wheel of Fortune" functionality) [i].
+*   Complex multi-currency support beyond the core points system.
+*   Comprehensive external security tool *integration* into the CI/CD pipeline during this initial development phase, though the *design* should accommodate it.
