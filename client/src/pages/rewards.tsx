@@ -5,8 +5,11 @@ import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import RewardCard from "@/components/RewardCard";
+import { Gift, Search, Coins, Award, ShoppingCart, AlertCircle } from "lucide-react";
 import type { Reward } from "@shared/schema";
 
 export default function Rewards() {
@@ -14,13 +17,12 @@ export default function Rewards() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedReward, setSelectedReward] = useState<Reward | null>(null);
+  const [showClaimDialog, setShowClaimDialog] = useState(false);
 
   const { data: rewards = [], isLoading } = useQuery<Reward[]>({
     queryKey: ["/api/rewards"],
   });
-
-  const [selectedReward, setSelectedReward] = useState<Reward | null>(null);
-  const [showClaimDialog, setShowClaimDialog] = useState(false);
 
   const redeemMutation = useMutation({
     mutationFn: async (rewardData: { rewardId: string; pointsSpent: number }) => {
@@ -65,18 +67,9 @@ export default function Rewards() {
     setShowClaimDialog(true);
   };
 
-  const confirmClaim = () => {
+  const confirmClaim = async () => {
     if (!selectedReward || !user) return;
-
-    if (user.totalPoints < selectedReward.pointsCost) {
-      toast({
-        title: "Insufficient Points",
-        description: `You need ${selectedReward.pointsCost} points to claim this reward. You have ${user.totalPoints} points.`,
-        variant: "destructive",
-      });
-      return;
-    }
-
+    
     redeemMutation.mutate({
       rewardId: selectedReward.id,
       pointsSpent: selectedReward.pointsCost,
@@ -90,7 +83,7 @@ export default function Rewards() {
           <h2 className="text-3xl font-bold text-gray-900 mb-2">Maverick Rewards</h2>
           <p className="text-gray-600">Redeem your points for exclusive Maverick rewards</p>
         </div>
-        <div className="bg-primary text-white px-4 py-2 rounded-lg">
+        <div className="bg-[#FDC800] text-[#3C3C3B] px-4 py-2 rounded-lg">
           <span className="text-sm font-medium" data-testid="text-available-points">
             Available: {user?.totalPoints || 0} points
           </span>
@@ -109,6 +102,7 @@ export default function Rewards() {
                   variant={selectedCategory === category.value ? "default" : "outline"}
                   size="sm"
                   onClick={() => setSelectedCategory(category.value)}
+                  className={selectedCategory === category.value ? "bg-[#FDC800] hover:bg-[#FDC800]/90 text-[#3C3C3B]" : ""}
                   data-testid={`button-filter-${category.value}`}
                 >
                   {category.label}
@@ -122,25 +116,26 @@ export default function Rewards() {
       {/* Rewards Grid */}
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {Array.from({ length: 6 }).map((_, i) => (
+          {[...Array(6)].map((_, i) => (
             <Card key={i} className="animate-pulse">
-              <div className="h-48 bg-gray-200 rounded-t-lg" />
+              <div className="h-48 bg-gray-200" />
               <CardContent className="p-6">
                 <div className="h-4 bg-gray-200 rounded mb-2" />
                 <div className="h-3 bg-gray-200 rounded mb-4" />
-                <div className="flex justify-between items-center">
-                  <div className="h-6 bg-gray-200 rounded w-20" />
-                  <div className="h-8 bg-gray-200 rounded w-16" />
-                </div>
+                <div className="h-8 bg-gray-200 rounded" />
               </CardContent>
             </Card>
           ))}
         </div>
       ) : filteredRewards.length === 0 ? (
-        <Card>
-          <CardContent className="p-12 text-center">
-            <p className="text-gray-500" data-testid="text-no-rewards">
-              No rewards available in this category.
+        <Card className="text-center p-12">
+          <CardContent>
+            <Gift className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">No Rewards Available</h3>
+            <p className="text-gray-600 mb-4">
+              {selectedCategory === "all" 
+                ? "No rewards are currently available." 
+                : `No ${categories.find(c => c.value === selectedCategory)?.label} rewards available.`}
             </p>
           </CardContent>
         </Card>
