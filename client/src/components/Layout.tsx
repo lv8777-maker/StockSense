@@ -24,6 +24,8 @@ export default function Layout({ children }: LayoutProps) {
   const navItems = [
     { href: "/", label: "Dashboard", id: "dashboard" },
     { href: "/rewards", label: "Rewards Catalog", id: "rewards" },
+    { href: "/campaigns", label: "Campaigns", id: "campaigns" },
+    { href: "/notifications", label: "Notifications", id: "notifications" },
     { href: "/history", label: "Purchase History", id: "history" },
     { href: "/profile", label: "Profile", id: "profile" },
     { href: "/admin", label: "Admin Panel", id: "admin" },
