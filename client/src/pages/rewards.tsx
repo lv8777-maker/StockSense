@@ -19,22 +19,30 @@ export default function Rewards() {
     queryKey: ["/api/rewards"],
   });
 
+  const [selectedReward, setSelectedReward] = useState<Reward | null>(null);
+  const [showClaimDialog, setShowClaimDialog] = useState(false);
+
   const redeemMutation = useMutation({
     mutationFn: async (rewardData: { rewardId: string; pointsSpent: number }) => {
-      return await apiRequest("POST", "/api/redemptions", rewardData);
+      return await apiRequest("/api/redemptions", {
+        method: "POST",
+        body: JSON.stringify(rewardData),
+      });
     },
     onSuccess: () => {
       toast({
-        title: "Success!",
-        description: "Reward redeemed successfully. Check your redemptions.",
+        title: "🎉 Reward Claimed Successfully!",
+        description: "Your reward has been processed. Check your email for confirmation details.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       queryClient.invalidateQueries({ queryKey: ["/api/redemptions"] });
+      setShowClaimDialog(false);
+      setSelectedReward(null);
     },
     onError: (error: Error) => {
       toast({
-        title: "Error",
-        description: error.message,
+        title: "Claim Failed",
+        description: error.message || "Unable to process your reward claim. Please try again.",
         variant: "destructive",
       });
     },
@@ -52,19 +60,26 @@ export default function Rewards() {
     ? rewards 
     : rewards.filter((reward: Reward) => reward.category === selectedCategory);
 
-  const handleRedeem = (reward: Reward) => {
-    if (!user || user.totalPoints < reward.pointsCost) {
+  const handleClaimClick = (reward: Reward) => {
+    setSelectedReward(reward);
+    setShowClaimDialog(true);
+  };
+
+  const confirmClaim = () => {
+    if (!selectedReward || !user) return;
+
+    if (user.totalPoints < selectedReward.pointsCost) {
       toast({
         title: "Insufficient Points",
-        description: `You need ${reward.pointsCost} points to redeem this reward.`,
+        description: `You need ${selectedReward.pointsCost} points to claim this reward. You have ${user.totalPoints} points.`,
         variant: "destructive",
       });
       return;
     }
 
     redeemMutation.mutate({
-      rewardId: reward.id,
-      pointsSpent: reward.pointsCost,
+      rewardId: selectedReward.id,
+      pointsSpent: selectedReward.pointsCost,
     });
   };
 
