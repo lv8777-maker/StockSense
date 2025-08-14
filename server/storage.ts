@@ -5,6 +5,13 @@ import {
   redemptions,
   offers,
   socialConnections,
+  campaigns,
+  notifications,
+  loyaltyAccounts,
+  earningRules,
+  adminUsers,
+  systemConfig,
+  auditLogs,
   type User,
   type UpsertUser,
   type Reward,
@@ -17,6 +24,16 @@ import {
   type InsertOffer,
   type SocialConnection,
   type InsertSocialConnection,
+  type Campaign,
+  type InsertCampaign,
+  type Notification,
+  type InsertNotification,
+  type LoyaltyAccount,
+  type InsertLoyaltyAccount,
+  type EarningRule,
+  type InsertEarningRule,
+  type AdminUser,
+  type InsertAdminUser,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, sql, and, gte, lte } from "drizzle-orm";
@@ -58,6 +75,31 @@ export interface IStorage {
   // Social connections
   getUserSocialConnections(userId: string): Promise<SocialConnection[]>;
   createSocialConnection(connection: InsertSocialConnection): Promise<SocialConnection>;
+  
+  // Enterprise features - Campaigns
+  getCampaigns(page?: number, limit?: number): Promise<{ campaigns: Campaign[]; total: number; hasMore: boolean; }>;
+  getCampaign(id: string): Promise<Campaign | undefined>;
+  createCampaign(campaign: InsertCampaign): Promise<Campaign>;
+  updateCampaign(id: string, updates: Partial<Campaign>): Promise<Campaign | undefined>;
+
+  // Notifications
+  getNotifications(userId: string, limit?: number): Promise<Notification[]>;
+  createNotification(notification: InsertNotification): Promise<Notification>;
+  markNotificationAsRead(notificationId: string, userId: string): Promise<boolean>;
+
+  // Loyalty Accounts
+  getLoyaltyAccount(userId: string): Promise<LoyaltyAccount | undefined>;
+  createLoyaltyAccount(account: InsertLoyaltyAccount): Promise<LoyaltyAccount>;
+  updateLoyaltyAccount(userId: string, updates: Partial<LoyaltyAccount>): Promise<LoyaltyAccount | undefined>;
+
+  // Earning Rules
+  getEarningRules(): Promise<EarningRule[]>;
+  createEarningRule(rule: InsertEarningRule): Promise<EarningRule>;
+  updateEarningRule(id: string, updates: Partial<EarningRule>): Promise<EarningRule | undefined>;
+
+  // Admin Users
+  getAdminUser(email: string): Promise<AdminUser | undefined>;
+  createAdminUser(admin: InsertAdminUser): Promise<AdminUser>;
   
   // Admin operations
   getAllUsers(): Promise<User[]>;
@@ -348,6 +390,83 @@ export class DatabaseStorage implements IStorage {
       totalPointsRedeemed: redemptionStats.totalPointsRedeemed,
       monthlyRevenue: revenueStats.monthlyRevenue,
     };
+  }
+
+  // Enterprise features implementation
+  async getCampaigns(page = 1, limit = 20): Promise<{ campaigns: Campaign[]; total: number; hasMore: boolean; }> {
+    const offset = (page - 1) * limit;
+    const campaignList = await db.select().from(campaigns).orderBy(desc(campaigns.createdAt)).limit(limit + 1).offset(offset);
+    const hasMore = campaignList.length > limit;
+    const resultCampaigns = hasMore ? campaignList.slice(0, -1) : campaignList;
+    return { campaigns: resultCampaigns, total: resultCampaigns.length, hasMore };
+  }
+
+  async getCampaign(id: string): Promise<Campaign | undefined> {
+    const [campaign] = await db.select().from(campaigns).where(eq(campaigns.id, id));
+    return campaign;
+  }
+
+  async createCampaign(campaign: InsertCampaign): Promise<Campaign> {
+    const [newCampaign] = await db.insert(campaigns).values(campaign).returning();
+    return newCampaign;
+  }
+
+  async updateCampaign(id: string, updates: Partial<Campaign>): Promise<Campaign | undefined> {
+    const [updatedCampaign] = await db.update(campaigns).set({ ...updates, updatedAt: new Date() }).where(eq(campaigns.id, id)).returning();
+    return updatedCampaign;
+  }
+
+  async getNotifications(userId: string, limit = 20): Promise<Notification[]> {
+    return await db.select().from(notifications).where(eq(notifications.userId, userId)).orderBy(desc(notifications.createdAt)).limit(limit);
+  }
+
+  async createNotification(notification: InsertNotification): Promise<Notification> {
+    const [newNotification] = await db.insert(notifications).values(notification).returning();
+    return newNotification;
+  }
+
+  async markNotificationAsRead(notificationId: string, userId: string): Promise<boolean> {
+    const result = await db.update(notifications).set({ readAt: new Date() }).where(and(eq(notifications.id, notificationId), eq(notifications.userId, userId)));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async getLoyaltyAccount(userId: string): Promise<LoyaltyAccount | undefined> {
+    const [account] = await db.select().from(loyaltyAccounts).where(eq(loyaltyAccounts.userId, userId));
+    return account;
+  }
+
+  async createLoyaltyAccount(account: InsertLoyaltyAccount): Promise<LoyaltyAccount> {
+    const [newAccount] = await db.insert(loyaltyAccounts).values(account).returning();
+    return newAccount;
+  }
+
+  async updateLoyaltyAccount(userId: string, updates: Partial<LoyaltyAccount>): Promise<LoyaltyAccount | undefined> {
+    const [updatedAccount] = await db.update(loyaltyAccounts).set({ ...updates, updatedAt: new Date() }).where(eq(loyaltyAccounts.userId, userId)).returning();
+    return updatedAccount;
+  }
+
+  async getEarningRules(): Promise<EarningRule[]> {
+    return await db.select().from(earningRules).orderBy(desc(earningRules.createdAt));
+  }
+
+  async createEarningRule(rule: InsertEarningRule): Promise<EarningRule> {
+    const [newRule] = await db.insert(earningRules).values(rule).returning();
+    return newRule;
+  }
+
+  async updateEarningRule(id: string, updates: Partial<EarningRule>): Promise<EarningRule | undefined> {
+    const [updatedRule] = await db.update(earningRules).set({ ...updates, updatedAt: new Date() }).where(eq(earningRules.id, id)).returning();
+    return updatedRule;
+  }
+
+  async getAdminUser(email: string): Promise<AdminUser | undefined> {
+    const [admin] = await db.select().from(adminUsers).where(eq(adminUsers.email, email));
+    return admin;
+  }
+
+  async createAdminUser(admin: InsertAdminUser): Promise<AdminUser> {
+    const [newAdmin] = await db.insert(adminUsers).values(admin).returning();
+    return newAdmin;
   }
 }
 

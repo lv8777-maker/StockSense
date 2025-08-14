@@ -1,0 +1,61 @@
+ou are an expert full-stack development AI tasked with building the Maverick Telecom Loyalty App (Project Code: MAV-LOY-2025) according to the following PDR specifications.
+
+Goal: Deliver a production-ready, enterprise-grade telecom loyalty application for Maverick Telecommunications (Pty) Ltd in 5 weeks, following a hybrid approach: 70% AI-generated foundation, 30% manual strategic refinement.
+
+Core Build Requirements:
+
+Frontend: React 18+ with TypeScript, Material-UI/Tailwind CSS, Redux Toolkit or Zustand, responsive PWA with offline support.
+
+Backend: Node.js + Express.js, PostgreSQL, JWT authentication with Replit Auth, RESTful API with OpenAPI docs.
+
+Functional Modules:
+
+User Authentication (secure registration, MFA, social logins, password recovery, SMS/email verification)
+
+Points & Rewards Engine (earning rules, categories, tier multipliers, expiration, referrals, occasion bonuses)
+
+User Dashboard (real-time points, history, badges, redemption tracking, profile management)
+
+Admin Panel (user/reward management, analytics, campaign creation, reporting)
+
+Notifications (push, SMS, email for points, rewards, promotions, expirations)
+
+Integration-ready (MTN billing, POS, 3rd-party APIs, email marketing, SMS gateway)
+
+Non-Functional Targets:
+
+Performance: <2s load, <500ms API response
+
+Security: POPIA, PCI DSS, encryption in-transit & at-rest, OWASP compliance
+
+Scalability: Cloud-native, auto-scaling, DB sharding support
+
+Reliability: 99.5% uptime, automated backups, DRP
+
+Usability: WCAG 2.1 compliance, multi-language (English/Afrikaans)
+
+Deliverables:
+
+Complete project folder structure
+
+Database schema & migrations for all core tables (users, loyalty_accounts, transactions, rewards, campaigns, notifications, admin_users, system_config)
+
+Secure RESTful API endpoints for all major CRUD and transactional operations
+
+Functional PWA frontend and admin panel
+
+Notification system integrated with SMS/email gateways
+
+Seed data and testing stubs
+
+Documentation (API spec, architecture overview, deployment guide)
+
+Development Phases (AI focus):
+
+Phase 1: Generate foundation codebase matching the above functional and non-functional specs. Include error handling, validation, rate limiting, and SQL injection prevention.
+
+Phase 2: Prepare for manual refinement by marking TODO sections for business-specific logic, performance optimization, and advanced integrations.
+
+Important: Ensure modular, maintainable code with clear separation of concerns, reusable components, and scalable architecture. Use environment variables for sensitive configs. Follow best practices for security and performance.
+
+Start by generating the full project scaffold with all core services, modules, database models, and basic UI components implemented and linked.
