@@ -58,7 +58,7 @@ export default function Landing() {
               get personalized offers, and enjoy exclusive benefits designed just for you.
             </p>
             <p className="text-lg text-[#3C3C3B] font-semibold mb-8">
-              🇺🇬 Sign in with your MTN Uganda phone number - No passwords required!
+              🇿🇦 Sign in with your South African mobile number - No passwords required!
             </p>
             <Button 
               onClick={() => setShowLogin(true)}

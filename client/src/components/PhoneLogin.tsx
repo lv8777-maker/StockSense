@@ -50,14 +50,18 @@ export default function PhoneLogin({ onLoginSuccess }: PhoneLoginProps) {
     // Remove all non-digits
     const digits = value.replace(/\D/g, '');
     
-    // Format for MTN Uganda numbers
-    if (digits.startsWith('256')) {
-      // +256 77X XXX XXX format
-      const formatted = digits.replace(/^256(\d{3})(\d{3})(\d{3})$/, '+256 $1 $2 $3');
-      return formatted.length === 16 ? formatted : `+${digits}`;
-    } else if (digits.startsWith('77') || digits.startsWith('78')) {
-      // 077X XXX XXX format
-      const formatted = digits.replace(/^(\d{3})(\d{3})(\d{3})$/, '$1 $2 $3');
+    // Format for South African numbers
+    if (digits.startsWith('27')) {
+      // +27 XX XXX XXXX format
+      const formatted = digits.replace(/^27(\d{2})(\d{3})(\d{4})$/, '+27 $1 $2 $3');
+      return formatted.length === 15 ? formatted : `+${digits}`;
+    } else if (digits.startsWith('0')) {
+      // 0XX XXX XXXX format
+      const formatted = digits.replace(/^0(\d{2})(\d{3})(\d{4})$/, '0$1 $2 $3');
+      return formatted.length === 12 ? formatted : digits;
+    } else if (digits.length === 9 && /^[678]/.test(digits)) {
+      // XX XXX XXXX format (without leading 0)
+      const formatted = digits.replace(/^(\d{2})(\d{3})(\d{4})$/, '$1 $2 $3');
       return formatted.length === 11 ? formatted : digits;
     }
     
@@ -113,7 +117,7 @@ export default function PhoneLogin({ onLoginSuccess }: PhoneLoginProps) {
               Maverick Loyalty
             </CardTitle>
             <p className="text-gray-600 mt-2">
-              Sign in with your MTN phone number
+              Sign in with your South African mobile number
             </p>
           </div>
         </CardHeader>
@@ -122,14 +126,14 @@ export default function PhoneLogin({ onLoginSuccess }: PhoneLoginProps) {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="phone" className="text-sm font-medium">
-                MTN Phone Number
+                South African Mobile Number
               </Label>
               <div className="relative">
                 <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
                   id="phone"
                   type="tel"
-                  placeholder="077 XXX XXX or +256 77X XXX XXX"
+                  placeholder="072 123 4567 or +27 72 123 4567"
                   value={phoneNumber}
                   onChange={handlePhoneChange}
                   className="pl-10"
@@ -137,7 +141,7 @@ export default function PhoneLogin({ onLoginSuccess }: PhoneLoginProps) {
                 />
               </div>
               <p className="text-xs text-gray-500">
-                Enter your MTN Uganda number (077 or 078)
+                Enter your South African mobile number (06X, 07X, 08X)
               </p>
             </div>
 

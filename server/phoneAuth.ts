@@ -26,25 +26,28 @@ export function getSession() {
   });
 }
 
-// Phone number validation for MTN Uganda format
-export function validateMTNPhoneNumber(phoneNumber: string): boolean {
-  // MTN Uganda formats: +256 77X XXX XXX or +256 78X XXX XXX
-  const mtnRegex = /^\+256(77[0-9]|78[0-9])[0-9]{6}$/;
-  return mtnRegex.test(phoneNumber);
+// Phone number validation for South African format
+export function validateSouthAfricanPhoneNumber(phoneNumber: string): boolean {
+  // South African mobile formats: +27 6X XXX XXXX, +27 7X XXX XXXX, +27 8X XXX XXXX
+  const saRegex = /^\+27[678][0-9]{8}$/;
+  return saRegex.test(phoneNumber);
 }
 
-// Normalize phone number to international format
+// Normalize phone number to South African international format
 export function normalizePhoneNumber(phoneNumber: string): string {
   // Remove all non-digit characters
   let cleaned = phoneNumber.replace(/\D/g, '');
   
-  // Handle different input formats
-  if (cleaned.startsWith('256')) {
+  // Handle different South African input formats
+  if (cleaned.startsWith('27')) {
+    // Already has country code +27
     return '+' + cleaned;
-  } else if (cleaned.startsWith('077') || cleaned.startsWith('078')) {
-    return '+256' + cleaned;
-  } else if (cleaned.startsWith('77') || cleaned.startsWith('78')) {
-    return '+256' + cleaned;
+  } else if (cleaned.startsWith('0')) {
+    // Local format starting with 0 (e.g., 072 123 4567)
+    return '+27' + cleaned.substring(1);
+  } else if (cleaned.length === 9 && /^[678]/.test(cleaned)) {
+    // 9-digit mobile number without leading 0
+    return '+27' + cleaned;
   }
   
   return '+' + cleaned;
@@ -65,9 +68,9 @@ export async function setupPhoneAuth(app: Express) {
 
       const normalizedPhone = normalizePhoneNumber(phoneNumber);
       
-      if (!validateMTNPhoneNumber(normalizedPhone)) {
+      if (!validateSouthAfricanPhoneNumber(normalizedPhone)) {
         return res.status(400).json({ 
-          message: "Please enter a valid MTN Uganda phone number (077XXXXXXX or 078XXXXXXX)" 
+          message: "Please enter a valid South African mobile number (e.g., 072 123 4567 or +27 72 123 4567)" 
         });
       }
 
