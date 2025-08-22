@@ -1,9 +1,24 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Gift, Star, Users, Award } from "lucide-react";
-import maverickLogo from "@/assets/maverick-logo.png";
+import { Gift, Star, Users, Award, Smartphone } from "lucide-react";
+import PhoneLogin from "@/components/PhoneLogin";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function Landing() {
+  const [showLogin, setShowLogin] = useState(false);
+  const queryClient = useQueryClient();
+
+  const handleLoginSuccess = () => {
+    setShowLogin(false);
+    queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+    window.location.reload(); // Refresh to load authenticated app
+  };
+
+  if (showLogin) {
+    return <PhoneLogin onLoginSuccess={handleLoginSuccess} />;
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       {/* Header */}
@@ -11,18 +26,21 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
-              <img src={maverickLogo} alt="Maverick" className="h-8 w-auto" />
+              <div className="w-8 h-8 bg-[#FDC800] rounded-lg flex items-center justify-center">
+                <Smartphone className="h-5 w-5 text-[#3C3C3B]" />
+              </div>
               <div className="flex flex-col">
-                <h1 className="text-xl font-bold text-primary">Maverick</h1>
+                <h1 className="text-xl font-bold text-[#3C3C3B]">Maverick</h1>
                 <span className="text-xs text-gray-500">Loyalty Program</span>
               </div>
             </div>
             <Button 
-              onClick={() => window.location.href = '/api/login'}
-              className="bg-primary hover:bg-primary/90"
+              onClick={() => setShowLogin(true)}
+              className="bg-[#FDC800] hover:bg-[#FDC800]/90 text-[#3C3C3B] font-semibold"
               data-testid="button-login"
             >
-              Sign In
+              <Smartphone className="h-4 w-4 mr-2" />
+              Sign In with Phone
             </Button>
           </div>
         </div>
@@ -33,18 +51,22 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
           <div className="text-center">
             <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
-              Transform Your <span className="text-primary">Loyalty Experience</span>
+              Transform Your <span className="text-[#FDC800]">Loyalty Experience</span>
             </h1>
             <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
               Join Maverick's loyalty program and earn points with every purchase. Redeem amazing rewards,
               get personalized offers, and enjoy exclusive benefits designed just for you.
             </p>
+            <p className="text-lg text-[#3C3C3B] font-semibold mb-8">
+              🇺🇬 Sign in with your MTN Uganda phone number - No passwords required!
+            </p>
             <Button 
-              onClick={() => window.location.href = '/api/login'}
+              onClick={() => setShowLogin(true)}
               size="lg"
-              className="bg-primary hover:bg-primary/90 text-lg px-8 py-3"
+              className="bg-[#FDC800] hover:bg-[#FDC800]/90 text-[#3C3C3B] text-lg px-8 py-3 font-semibold"
               data-testid="button-get-started"
             >
+              <Smartphone className="h-5 w-5 mr-2" />
               Get Started Today
             </Button>
           </div>

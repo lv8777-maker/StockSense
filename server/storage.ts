@@ -118,6 +118,35 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
+  async getUserByPhone(phoneNumber: string): Promise<User | undefined> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.phoneNumber, phoneNumber))
+      .limit(1);
+    
+    return user;
+  }
+
+  async createUserWithPhone(userData: { phoneNumber: string; firstName?: string; lastName?: string }): Promise<User> {
+    const [newUser] = await db
+      .insert(users)
+      .values({
+        phoneNumber: userData.phoneNumber,
+        firstName: userData.firstName || '',
+        lastName: userData.lastName || '',
+        totalPoints: 0,
+        membershipTier: 'bronze',
+        isActive: true,
+        emailNotifications: false,
+        pushNotifications: true,
+        marketingMessages: true,
+      })
+      .returning();
+    
+    return newUser;
+  }
+
   async upsertUser(userData: UpsertUser): Promise<User> {
     const [user] = await db
       .insert(users)

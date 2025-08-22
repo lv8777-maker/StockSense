@@ -27,11 +27,11 @@ export const sessions = pgTable(
 // User storage table (required for Replit Auth)
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  email: varchar("email").unique(),
+  phoneNumber: varchar("phone_number").unique().notNull(), // MTN cell phone number as primary identifier
+  email: varchar("email"), // Optional email for notifications
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
-  phone: varchar("phone"),
   dateOfBirth: timestamp("date_of_birth"),
   gender: varchar("gender"),
   location: varchar("location"),
