@@ -81,7 +81,7 @@ export default function Navigation({ showBackButton = false }: NavigationProps) 
 
       {/* Mobile Navigation Menu */}
       <div className="md:hidden mt-3 pt-3 border-t border-gray-200">
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-3 gap-1">
           {navItems.slice(0, 6).map((item) => {
             const Icon = item.icon;
             const isActive = location === item.path;
@@ -93,13 +93,13 @@ export default function Navigation({ showBackButton = false }: NavigationProps) 
                   size="sm"
                   className={
                     isActive 
-                      ? "bg-[#FDC800] text-[#3C3C3B] hover:bg-[#FDC800]/90 w-full" 
-                      : "text-gray-600 hover:bg-gray-100 w-full"
+                      ? "bg-[#FDC800] text-[#3C3C3B] hover:bg-[#FDC800]/90 w-full flex-col h-12 p-1" 
+                      : "text-gray-600 hover:bg-gray-100 w-full flex-col h-12 p-1"
                   }
                   data-testid={`mobile-nav-${item.path.replace('/', '')}`}
                 >
-                  <Icon className="h-4 w-4 mr-1" />
-                  <span className="text-xs">{item.label}</span>
+                  <Icon className="h-4 w-4 mb-1" />
+                  <span className="text-xs leading-tight">{item.label}</span>
                 </Button>
               </Link>
             );

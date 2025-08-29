@@ -16,6 +16,7 @@ export default function TransactionSimulator({ currentPoints }: TransactionSimul
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState("airtime");
   const [description, setDescription] = useState("");
+  const [isExpanded, setIsExpanded] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -81,19 +82,29 @@ export default function TransactionSimulator({ currentPoints }: TransactionSimul
   };
 
   return (
-    <Card className="w-full max-w-md">
-      <CardHeader>
-        <CardTitle className="flex items-center space-x-2 text-[#3C3C3B]">
-          <ShoppingCart className="h-5 w-5" />
-          <span>Simulate Purchase</span>
-        </CardTitle>
-        <p className="text-sm text-gray-600">
+    <Card className="w-full">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center space-x-2 text-[#3C3C3B] text-base sm:text-lg">
+            <ShoppingCart className="h-4 w-4 sm:h-5 sm:w-5" />
+            <span>Simulate Purchase</span>
+          </CardTitle>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="sm:hidden"
+          >
+            {isExpanded ? "Less" : "More"}
+          </Button>
+        </div>
+        <p className="text-xs sm:text-sm text-gray-600">
           Test the points engine with a simulated telecom purchase
         </p>
       </CardHeader>
       
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+      <CardContent className={`transition-all duration-200 ${!isExpanded ? 'hidden sm:block' : ''}`}>
+        <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
           {/* Category Selection */}
           <div className="space-y-2">
             <label className="text-sm font-medium">Service Category</label>
@@ -117,7 +128,7 @@ export default function TransactionSimulator({ currentPoints }: TransactionSimul
           {/* Quick Amount Buttons */}
           <div className="space-y-2">
             <label className="text-sm font-medium">Quick Amounts (ZAR)</label>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-5 sm:grid-cols-3 gap-1 sm:gap-2">
               {quickAmounts.map((quickAmount) => (
                 <Button
                   key={quickAmount}
@@ -125,7 +136,7 @@ export default function TransactionSimulator({ currentPoints }: TransactionSimul
                   variant="outline"
                   size="sm"
                   onClick={() => setAmount(quickAmount.toString())}
-                  className="text-xs"
+                  className="text-xs px-2 py-1 h-8"
                   data-testid={`quick-amount-${quickAmount}`}
                 >
                   R{quickAmount}

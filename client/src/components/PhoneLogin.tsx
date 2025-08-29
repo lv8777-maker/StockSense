@@ -126,24 +126,24 @@ export default function PhoneLogin({ onLoginSuccess }: PhoneLoginProps) {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <Card className="w-full max-w-md">
-        <CardHeader className="text-center space-y-4">
+        <CardHeader className="text-center space-y-3 sm:space-y-4">
           <div className="flex justify-center">
-            <div className="w-16 h-16 bg-[#FDC800] rounded-full flex items-center justify-center">
-              <Smartphone className="h-8 w-8 text-[#3C3C3B]" />
+            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-[#FDC800] rounded-full flex items-center justify-center">
+              <Smartphone className="h-6 w-6 sm:h-8 sm:w-8 text-[#3C3C3B]" />
             </div>
           </div>
           <div>
-            <CardTitle className="text-2xl font-bold text-[#3C3C3B]">
+            <CardTitle className="text-xl sm:text-2xl font-bold text-[#3C3C3B]">
               Maverick Loyalty
             </CardTitle>
-            <p className="text-gray-600 mt-2">
+            <p className="text-gray-600 mt-2 text-sm sm:text-base">
               Sign in with your South African mobile number
             </p>
           </div>
         </CardHeader>
         
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+        <CardContent className="px-4 sm:px-6">
+          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
             <div className="space-y-2">
               <Label htmlFor="phone" className="text-sm font-medium">
                 South African Mobile Number
@@ -222,7 +222,7 @@ export default function PhoneLogin({ onLoginSuccess }: PhoneLoginProps) {
             <Button
               type="submit"
               disabled={loginMutation.isPending}
-              className="w-full bg-[#FDC800] hover:bg-[#FDC800]/90 text-[#3C3C3B] font-semibold"
+              className="w-full bg-[#FDC800] hover:bg-[#FDC800]/90 text-[#3C3C3B] font-semibold h-12 text-base"
               data-testid="button-sign-in"
             >
               {loginMutation.isPending ? (
