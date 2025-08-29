@@ -127,6 +127,116 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/transactions', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
+      const { type, amount, description, category, orderId } = req.body;
+      
+      // Use points engine for transaction processing
+      const transactionId = await pointsEngineService.recordTransaction(userId, {
+        type,
+        amount: parseFloat(amount?.toString() || '0'),
+        description,
+        orderId,
+        category,
+      });
+      
+      res.json({ id: transactionId, message: "Transaction processed successfully" });
+    } catch (error) {
+      console.error("Error creating transaction:", error);
+      res.status(500).json({ message: "Failed to create transaction" });
+    }
+  });
+
+  // Dashboard statistics endpoint
+  app.get('/api/dashboard/stats', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const transactions = await storage.getUserTransactions(userId);
+      const redemptions = await storage.getUserRedemptions(userId);
+      
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      
+      const monthlyTransactions = transactions.filter(t => 
+        new Date(t.createdAt!) >= startOfMonth && t.pointsEarned > 0
+      );
+      
+      const pointsThisMonth = monthlyTransactions.reduce((sum, t) => sum + (t.pointsEarned || 0), 0);
+      const recentRedemptions = redemptions.filter(r => 
+        new Date(r.redeemedAt!) >= startOfMonth
+      ).length;
+
+      const currentTier = user.membershipTier || 'bronze';
+      const currentPoints = user.totalPoints || 0;
+      
+      // Calculate next tier info using tier requirements
+      const tierRequirements = { bronze: 0, silver: 1000, gold: 5000, platinum: 15000 };
+      const tiers = ['bronze', 'silver', 'gold', 'platinum'];
+      const currentIndex = tiers.indexOf(currentTier);
+      const nextTier = currentIndex < tiers.length - 1 ? tiers[currentIndex + 1] : null;
+      
+      let pointsToNext = 0;
+      let tierProgress = 100;
+      
+      if (nextTier) {
+        const nextRequirement = tierRequirements[nextTier as keyof typeof tierRequirements];
+        const currentRequirement = tierRequirements[currentTier as keyof typeof tierRequirements];
+        pointsToNext = nextRequirement - currentPoints;
+        tierProgress = ((currentPoints - currentRequirement) / (nextRequirement - currentRequirement)) * 100;
+      }
+      
+      res.json({
+        totalPoints: currentPoints,
+        pointsThisMonth,
+        totalTransactions: transactions.length,
+        recentRedemptions,
+        currentTier,
+        nextTier,
+        pointsToNext: Math.max(0, pointsToNext),
+        tierProgress: Math.min(100, Math.max(0, tierProgress)),
+      });
+    } catch (error) {
+      console.error("Error fetching dashboard stats:", error);
+      res.status(500).json({ message: "Failed to fetch dashboard stats" });
+    }
+  });
+
+  // Recent activity endpoint
+  app.get('/api/dashboard/activity', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const transactions = await storage.getUserTransactions(userId);
+      const redemptions = await storage.getUserRedemptions(userId);
+      
+      // Combine and sort recent activity
+      const activity = [
+        ...transactions.slice(-10).map(t => ({
+          id: t.id,
+          type: t.type,
+          description: t.description,
+          points: (t.pointsEarned || 0) - (t.pointsSpent || 0),
+          date: t.createdAt!,
+          status: t.status,
+        })),
+        ...redemptions.slice(-5).map(r => ({
+          id: r.id,
+          type: 'redemption',
+          description: `Redeemed reward for ${r.pointsSpent} points`,
+          points: -r.pointsSpent,
+          date: r.redeemedAt!,
+          status: r.status,
+        }))
+      ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 10);
+      
+      res.json(activity);
+    } catch (error) {
+      console.error("Error fetching activity:", error);
+      res.status(500).json({ message: "Failed to fetch activity" });
+    }
+  });
+
+  app.post('/api/transactions', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
       const transactionData = insertTransactionSchema.parse({
         ...req.body,
         userId,

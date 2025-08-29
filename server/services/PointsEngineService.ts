@@ -28,12 +28,60 @@ export interface TierRequirements {
   platinum: number;
 }
 
+export interface TierBenefits {
+  pointMultiplier: number;
+  bonusRewards: string[];
+  exclusiveOffers: boolean;
+  freeShipping: boolean;
+  prioritySupport: boolean;
+}
+
+export interface Achievement {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  pointsAwarded: number;
+  unlockedAt: Date;
+}
+
 export class PointsEngineService {
   private readonly tierRequirements: TierRequirements = {
     bronze: 0,
     silver: 1000,
     gold: 5000,
     platinum: 15000,
+  };
+
+  private readonly tierBenefits: Record<string, TierBenefits> = {
+    bronze: {
+      pointMultiplier: 1.0,
+      bonusRewards: [],
+      exclusiveOffers: false,
+      freeShipping: false,
+      prioritySupport: false,
+    },
+    silver: {
+      pointMultiplier: 1.2,
+      bonusRewards: ['birthday_bonus'],
+      exclusiveOffers: true,
+      freeShipping: false,
+      prioritySupport: false,
+    },
+    gold: {
+      pointMultiplier: 1.5,
+      bonusRewards: ['birthday_bonus', 'anniversary_bonus'],
+      exclusiveOffers: true,
+      freeShipping: true,
+      prioritySupport: false,
+    },
+    platinum: {
+      pointMultiplier: 2.0,
+      bonusRewards: ['birthday_bonus', 'anniversary_bonus', 'quarterly_bonus'],
+      exclusiveOffers: true,
+      freeShipping: true,
+      prioritySupport: true,
+    },
   };
 
   // Calculate points for a purchase transaction
