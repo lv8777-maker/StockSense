@@ -46,6 +46,10 @@ export interface IStorage {
   updateUserPoints(userId: string, pointsChange: number): Promise<User>;
   updateUserProfile(userId: string, updates: Partial<User>): Promise<User>;
   
+  // Phone authentication methods
+  getUserByPhone(phoneNumber: string): Promise<User | undefined>;
+  createUserWithPhone(userData: { phoneNumber: string; firstName?: string; lastName?: string }): Promise<User>;
+  
   // Rewards operations
   getAllRewards(): Promise<Reward[]>;
   getActiveRewards(): Promise<Reward[]>;
@@ -54,7 +58,7 @@ export interface IStorage {
   deactivateReward(id: string): Promise<void>;
   
   // Transaction operations
-  createTransaction(transaction: InsertTransaction): Promise<Transaction>;
+  createTransaction(userId: string, transaction: InsertTransaction): Promise<Transaction>;
   getUserTransactions(userId: string, limit?: number): Promise<Transaction[]>;
   getTransactionStats(userId: string): Promise<{
     totalPurchases: number;
@@ -226,16 +230,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Transaction operations
-  async createTransaction(transaction: InsertTransaction): Promise<Transaction> {
+  async createTransaction(userId: string, transaction: InsertTransaction): Promise<Transaction> {
+    const transactionData = { ...transaction, userId };
     const [newTransaction] = await db
       .insert(transactions)
-      .values(transaction)
+      .values(transactionData)
       .returning();
 
     // Update user points if points were earned or spent
     if (transaction.pointsEarned || transaction.pointsSpent) {
       const pointsChange = (transaction.pointsEarned || 0) - (transaction.pointsSpent || 0);
-      await this.updateUserPoints(transaction.userId, pointsChange);
+      await this.updateUserPoints(userId, pointsChange);
     }
 
     return newTransaction;
