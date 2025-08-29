@@ -84,6 +84,29 @@ export async function setupPhoneAuth(app: Express) {
           firstName: firstName || '',
           lastName: lastName || '',
         });
+
+        // Award 50 bonus points for new account creation
+        try {
+          await storage.createTransaction({
+            userId: user.id,
+            type: 'earning' as const,
+            description: 'Welcome bonus for new account creation',
+            amount: 0,
+            pointsEarned: 50,
+            pointsSpent: 0,
+            category: 'bonus',
+            status: 'completed' as const,
+            orderId: `WELCOME-${user.id.substring(0, 8)}`,
+          });
+          
+          // Update user's total points
+          user = await storage.updateUserProfile(user.id, { 
+            totalPoints: (user.totalPoints || 0) + 50 
+          });
+        } catch (error) {
+          console.error("Error awarding welcome bonus:", error);
+          // Don't fail account creation if bonus fails
+        }
       }
 
       // Create session

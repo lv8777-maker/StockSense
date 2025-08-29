@@ -58,7 +58,7 @@ export interface IStorage {
   deactivateReward(id: string): Promise<void>;
   
   // Transaction operations
-  createTransaction(userId: string, transaction: InsertTransaction): Promise<Transaction>;
+  createTransaction(transaction: InsertTransaction): Promise<Transaction>;
   getUserTransactions(userId: string, limit?: number): Promise<Transaction[]>;
   getTransactionStats(userId: string): Promise<{
     totalPurchases: number;
@@ -230,17 +230,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Transaction operations
-  async createTransaction(userId: string, transaction: InsertTransaction): Promise<Transaction> {
-    const transactionData = { ...transaction, userId };
+  async createTransaction(transaction: InsertTransaction): Promise<Transaction> {
     const [newTransaction] = await db
       .insert(transactions)
-      .values(transactionData)
+      .values(transaction)
       .returning();
 
     // Update user points if points were earned or spent
     if (transaction.pointsEarned || transaction.pointsSpent) {
       const pointsChange = (transaction.pointsEarned || 0) - (transaction.pointsSpent || 0);
-      await this.updateUserPoints(userId, pointsChange);
+      await this.updateUserPoints(transaction.userId, pointsChange);
     }
 
     return newTransaction;
