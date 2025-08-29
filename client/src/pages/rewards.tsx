@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { Gift, Search, Coins, Award, ShoppingCart, AlertCircle } from "lucide-react";
 import type { Reward } from "@shared/schema";
+import Navigation from "@/components/Navigation";
 
 export default function Rewards() {
   const { user } = useAuth();
@@ -77,8 +78,10 @@ export default function Rewards() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="flex justify-between items-center mb-8">
+    <div className="min-h-screen bg-gray-50">
+      <Navigation showBackButton={true} />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex justify-between items-center mb-8">
         <div>
           <h2 className="text-3xl font-bold text-gray-900 mb-2">Maverick Rewards</h2>
           <p className="text-gray-600">Redeem your points for exclusive Maverick rewards</p>
@@ -288,6 +291,7 @@ export default function Rewards() {
           )}
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 }
