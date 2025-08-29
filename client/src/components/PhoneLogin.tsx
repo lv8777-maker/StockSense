@@ -108,6 +108,14 @@ export default function PhoneLogin({ onLoginSuccess }: PhoneLoginProps) {
         });
         return;
       }
+      if (!lastName.trim()) {
+        toast({
+          title: "Last Name Required", 
+          description: "Please enter your last name",
+          variant: "destructive",
+        });
+        return;
+      }
       submitData.firstName = firstName;
       submitData.lastName = lastName;
     }
@@ -179,7 +187,7 @@ export default function PhoneLogin({ onLoginSuccess }: PhoneLoginProps) {
 
                 <div className="space-y-2">
                   <Label htmlFor="lastName" className="text-sm font-medium">
-                    Last Name (Optional)
+                    Last Name
                   </Label>
                   <div className="relative">
                     <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
