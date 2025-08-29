@@ -1,10 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
+import { useResponsive } from "@/hooks/useResponsive";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import TierProgressCard from "@/components/TierProgressCard";
 import TransactionSimulator from "@/components/TransactionSimulator";
+import MobileOptimizedDashboard from "@/components/MobileOptimizedDashboard";
 import { 
   Coins, 
   Gift, 
@@ -38,6 +40,7 @@ interface RecentActivity {
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const { isMobile } = useResponsive();
 
   const { data: stats } = useQuery<DashboardStats>({
     queryKey: ["/api/dashboard/stats"],
@@ -78,21 +81,26 @@ export default function Dashboard() {
     tierProgress = ((currentPoints - currentRequirement) / (nextRequirement - currentRequirement)) * 100;
   }
 
+  // Show mobile-optimized dashboard on small screens
+  if (isMobile) {
+    return <MobileOptimizedDashboard />;
+  }
+
   return (
-    <div className="max-w-7xl mx-auto p-6 space-y-6">
+    <div className="max-w-7xl mx-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
       {/* Welcome Header */}
-      <div className="bg-gradient-to-r from-[#3C3C3B] to-gray-800 text-white rounded-lg p-6">
-        <div className="flex items-center justify-between">
+      <div className="bg-gradient-to-r from-[#3C3C3B] to-gray-800 text-white rounded-lg p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
           <div>
-            <h1 className="text-2xl font-bold" data-testid="welcome-header">
+            <h1 className="text-xl sm:text-2xl font-bold" data-testid="welcome-header">
               Welcome back, {user.firstName || 'Valued Customer'}!
             </h1>
-            <p className="text-gray-300">
+            <p className="text-gray-300 text-sm sm:text-base">
               Ready to explore rewards and earn more points today?
             </p>
           </div>
-          <div className="text-right">
-            <div className="text-3xl font-bold text-[#FDC800]" data-testid="total-points">
+          <div className="text-center sm:text-right">
+            <div className="text-2xl sm:text-3xl font-bold text-[#FDC800]" data-testid="total-points">
               {currentPoints.toLocaleString()}
             </div>
             <div className="text-sm text-gray-300">Total Points</div>
@@ -101,18 +109,18 @@ export default function Dashboard() {
       </div>
 
       {/* Quick Stats Row */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-[#FDC800]/20 rounded-lg">
-                <Coins className="h-5 w-5 text-[#FDC800]" />
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
+              <div className="p-2 bg-[#FDC800]/20 rounded-lg w-fit">
+                <Coins className="h-4 w-4 sm:h-5 sm:w-5 text-[#FDC800]" />
               </div>
-              <div>
-                <p className="text-2xl font-bold text-[#3C3C3B]">
+              <div className="min-w-0">
+                <p className="text-lg sm:text-2xl font-bold text-[#3C3C3B]">
                   {stats?.pointsThisMonth || 0}
                 </p>
-                <p className="text-xs text-gray-600">Points This Month</p>
+                <p className="text-xs text-gray-600 truncate">Points This Month</p>
               </div>
             </div>
           </CardContent>
@@ -168,9 +176,9 @@ export default function Dashboard() {
       </div>
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Left Column - Tier Progress & Transaction Simulator */}
-        <div className="lg:col-span-1 space-y-6">
+        <div className="lg:col-span-1 space-y-4 sm:space-y-6">
           <TierProgressCard
             currentTier={currentTier}
             currentPoints={currentPoints}
@@ -178,7 +186,9 @@ export default function Dashboard() {
             pointsToNext={pointsToNext}
             progress={tierProgress}
           />
-          <TransactionSimulator currentPoints={currentPoints} />
+          <div className="block lg:hidden">
+            <TransactionSimulator currentPoints={currentPoints} />
+          </div>
         </div>
 
         {/* Middle Column - Recent Activity */}

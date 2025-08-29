@@ -80,23 +80,23 @@ export default function Rewards() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navigation showBackButton={true} />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex justify-between items-center mb-8">
-        <div>
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">Maverick Rewards</h2>
-          <p className="text-gray-600">Redeem your points for exclusive Maverick rewards</p>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 sm:mb-8 space-y-4 sm:space-y-0">
+          <div>
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Maverick Rewards</h2>
+            <p className="text-gray-600 text-sm sm:text-base">Redeem your points for exclusive Maverick rewards</p>
+          </div>
+          <div className="bg-[#FDC800] text-[#3C3C3B] px-3 sm:px-4 py-2 rounded-lg w-fit">
+            <span className="text-sm font-medium" data-testid="text-available-points">
+              Available: {user?.totalPoints || 0} points
+            </span>
+          </div>
         </div>
-        <div className="bg-[#FDC800] text-[#3C3C3B] px-4 py-2 rounded-lg">
-          <span className="text-sm font-medium" data-testid="text-available-points">
-            Available: {user?.totalPoints || 0} points
-          </span>
-        </div>
-      </div>
 
       {/* Filter Options */}
-      <Card className="mb-6">
-        <CardContent className="p-4">
-          <div className="flex flex-wrap gap-4 items-center">
+      <Card className="mb-4 sm:mb-6">
+        <CardContent className="p-3 sm:p-4">
+          <div className="space-y-3 sm:space-y-0 sm:flex sm:flex-wrap sm:gap-4 sm:items-center">
             <span className="text-sm font-medium text-gray-700">Filter by category:</span>
             <div className="flex flex-wrap gap-2">
               {categories.map((category) => (
@@ -105,7 +105,7 @@ export default function Rewards() {
                   variant={selectedCategory === category.value ? "default" : "outline"}
                   size="sm"
                   onClick={() => setSelectedCategory(category.value)}
-                  className={selectedCategory === category.value ? "bg-[#FDC800] hover:bg-[#FDC800]/90 text-[#3C3C3B]" : ""}
+                  className={`text-xs sm:text-sm h-8 px-3 ${selectedCategory === category.value ? "bg-[#FDC800] hover:bg-[#FDC800]/90 text-[#3C3C3B]" : ""}`}
                   data-testid={`button-filter-${category.value}`}
                 >
                   {category.label}
@@ -118,7 +118,7 @@ export default function Rewards() {
 
       {/* Rewards Grid */}
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {[...Array(6)].map((_, i) => (
             <Card key={i} className="animate-pulse">
               <div className="h-48 bg-gray-200" />

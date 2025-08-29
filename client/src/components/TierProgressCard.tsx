@@ -47,21 +47,21 @@ export default function TierProgressCard({
 
   return (
     <Card className="bg-gradient-to-br from-gray-50 to-white border-2" data-testid="card-tier-progress">
-      <CardHeader className="pb-4">
-        <div className="flex items-center justify-between">
+      <CardHeader className="pb-3 sm:pb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
           <div className="flex items-center space-x-3">
-            <div className="p-2 rounded-lg" style={{ backgroundColor: `${currentColor}20` }}>
-              <CurrentIcon className="h-6 w-6" style={{ color: currentColor }} />
+            <div className="p-2 rounded-lg flex-shrink-0" style={{ backgroundColor: `${currentColor}20` }}>
+              <CurrentIcon className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: currentColor }} />
             </div>
-            <div>
-              <CardTitle className="text-lg capitalize text-[#3C3C3B]">
+            <div className="min-w-0">
+              <CardTitle className="text-base sm:text-lg capitalize text-[#3C3C3B]">
                 {currentTier} Member
               </CardTitle>
               <p className="text-sm text-gray-600">{currentPoints.toLocaleString()} points</p>
             </div>
           </div>
           <Badge 
-            className="capitalize font-semibold"
+            className="capitalize font-semibold text-xs sm:text-sm w-fit"
             style={{ 
               backgroundColor: currentColor, 
               color: currentTier === 'silver' || currentTier === 'platinum' ? '#000' : '#fff'
@@ -78,16 +78,21 @@ export default function TierProgressCard({
         <div>
           <h4 className="font-semibold text-sm text-[#3C3C3B] mb-2">Your Benefits</h4>
           <div className="flex flex-wrap gap-1">
-            {benefits.map((benefit, index) => (
+            {benefits.slice(0, 3).map((benefit, index) => (
               <Badge 
                 key={index} 
                 variant="secondary" 
-                className="text-xs bg-[#FDC800]/20 text-[#3C3C3B]"
+                className="text-xs bg-[#FDC800]/20 text-[#3C3C3B] break-words"
                 data-testid={`benefit-${index}`}
               >
                 {benefit}
               </Badge>
             ))}
+            {benefits.length > 3 && (
+              <Badge variant="secondary" className="text-xs bg-gray-100 text-gray-600">
+                +{benefits.length - 3} more
+              </Badge>
+            )}
           </div>
         </div>
 
