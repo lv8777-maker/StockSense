@@ -22,10 +22,22 @@ export default function PhoneLogin({ onLoginSuccess }: PhoneLoginProps) {
 
   const loginMutation = useMutation({
     mutationFn: async (data: { phoneNumber: string; firstName?: string; lastName?: string }) => {
-      return await apiRequest("/api/auth/phone", {
+      const response = await fetch("/api/auth/phone", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
         body: JSON.stringify(data),
       });
+      
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.message || "Authentication failed");
+      }
+      
+      return result;
     },
     onSuccess: (data) => {
       if (data.success) {
