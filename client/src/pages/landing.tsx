@@ -53,24 +53,60 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
           <div className="text-center">
             <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
-              Transform Your <span className="text-[#FDC800]">Loyalty Experience</span>
+              Transform Your <span className="text-[#FDC800]">Maverick Experience</span>
             </h1>
             <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-              Join Maverick's loyalty program and earn points with every purchase. Redeem amazing rewards,
-              get personalized offers, and enjoy exclusive benefits designed just for you.
+              Join Maverick's 4-tier loyalty program and earn points with every telecom plan. Redeem amazing rewards,
+              get personalized offers, and enjoy exclusive benefits designed for your tier.
             </p>
-            <p className="text-lg text-[#3C3C3B] font-semibold mb-8">
-              🇿🇦 Sign in with your South African mobile number - No passwords required!
-            </p>
-            <Button 
-              onClick={() => setShowLogin(true)}
-              size="lg"
-              className="bg-[#FDC800] hover:bg-[#FDC800]/90 text-[#3C3C3B] text-lg px-8 py-3 font-semibold"
-              data-testid="button-get-started"
-            >
-              <Smartphone className="h-5 w-5 mr-2" />
-              Get Started Today
-            </Button>
+            
+            {/* Tier Benefits Preview */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 max-w-4xl mx-auto">
+              <div className="text-center p-4 bg-white rounded-lg shadow-sm border border-gray-200">
+                <Crown className="h-6 w-6 mx-auto mb-2 text-[#8B4513]" />
+                <p className="text-sm font-medium text-gray-900">Maverick Starter</p>
+                <p className="text-xs text-gray-500">100 pts</p>
+              </div>
+              <div className="text-center p-4 bg-white rounded-lg shadow-sm border border-gray-200">
+                <Crown className="h-6 w-6 mx-auto mb-2 text-[#C0C0C0]" />
+                <p className="text-sm font-medium text-gray-900">Maverick Explorer</p>
+                <p className="text-xs text-gray-500">200 pts</p>
+              </div>
+              <div className="text-center p-4 bg-white rounded-lg shadow-sm border border-gray-200">
+                <Crown className="h-6 w-6 mx-auto mb-2 text-[#FFD700]" />
+                <p className="text-sm font-medium text-gray-900">Maverick Champion</p>
+                <p className="text-xs text-gray-500">300 pts</p>
+              </div>
+              <div className="text-center p-4 bg-white rounded-lg shadow-sm border border-gray-200">
+                <Crown className="h-6 w-6 mx-auto mb-2 text-[#E5E4E2]" />
+                <p className="text-sm font-medium text-gray-900">Maverick Elite</p>
+                <p className="text-xs text-gray-500">500 pts</p>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+              <Link href="/email-auth">
+                <Button 
+                  size="lg"
+                  className="bg-[#FDC800] hover:bg-[#FDC800]/90 text-[#3C3C3B] text-lg px-8 py-3 font-semibold"
+                  data-testid="button-email-signup"
+                >
+                  <Mail className="h-5 w-5 mr-2" />
+                  Sign Up with Email & Plan
+                </Button>
+              </Link>
+              
+              <Button 
+                onClick={() => setShowPhoneLogin(true)}
+                size="lg"
+                variant="outline"
+                className="text-lg px-8 py-3"
+                data-testid="button-phone-signup"
+              >
+                <Smartphone className="h-5 w-5 mr-2" />
+                Continue with Phone (SA)
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -79,63 +115,63 @@ export default function Landing() {
       <div className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Why Choose Maverick?</h2>
-            <p className="text-lg text-gray-600">Discover the benefits of our modern loyalty program</p>
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Why Choose Maverick Loyalty?</h2>
+            <p className="text-lg text-gray-600">Discover the benefits of our 4-tier telecom loyalty program</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             <Card className="text-center">
               <CardHeader>
-                <div className="bg-primary bg-opacity-10 p-3 rounded-lg w-fit mx-auto mb-4">
-                  <Gift className="h-8 w-8 text-primary" />
+                <div className="bg-[#FDC800]/10 p-3 rounded-lg w-fit mx-auto mb-4">
+                  <Gift className="h-8 w-8 text-[#3C3C3B]" />
                 </div>
-                <CardTitle className="text-lg">Earn Points</CardTitle>
+                <CardTitle className="text-lg">Plan-Based Points</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-gray-600">
-                  Earn points with every purchase and get bonus points for social media connections.
+                  Earn tier-specific points when you select your telecom plan and upgrade for bonus rewards.
                 </p>
               </CardContent>
             </Card>
 
             <Card className="text-center">
               <CardHeader>
-                <div className="bg-accent bg-opacity-10 p-3 rounded-lg w-fit mx-auto mb-4">
-                  <Star className="h-8 w-8 text-accent" />
+                <div className="bg-[#FDC800]/10 p-3 rounded-lg w-fit mx-auto mb-4">
+                  <Crown className="h-8 w-8 text-[#3C3C3B]" />
                 </div>
-                <CardTitle className="text-lg">Amazing Rewards</CardTitle>
+                <CardTitle className="text-lg">4 Loyalty Tiers</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-gray-600">
-                  Redeem your points for exclusive merchandise, discounts, and unique experiences.
+                  Progress through Starter, Explorer, Champion, and Elite tiers with increasing benefits.
                 </p>
               </CardContent>
             </Card>
 
             <Card className="text-center">
               <CardHeader>
-                <div className="bg-success bg-opacity-10 p-3 rounded-lg w-fit mx-auto mb-4">
-                  <Users className="h-8 w-8 text-success" />
+                <div className="bg-[#FDC800]/10 p-3 rounded-lg w-fit mx-auto mb-4">
+                  <Star className="h-8 w-8 text-[#3C3C3B]" />
                 </div>
-                <CardTitle className="text-lg">Personalized Offers</CardTitle>
+                <CardTitle className="text-lg">Premium Rewards</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-gray-600">
-                  Get tailored offers and recommendations based on your preferences and history.
+                  Redeem points for telecom benefits, device upgrades, and exclusive Maverick experiences.
                 </p>
               </CardContent>
             </Card>
 
             <Card className="text-center">
               <CardHeader>
-                <div className="bg-maverick-bright-yellow bg-opacity-20 p-3 rounded-lg w-fit mx-auto mb-4">
-                  <Award className="h-8 w-8 text-maverick-dark-gray" />
+                <div className="bg-[#FDC800]/10 p-3 rounded-lg w-fit mx-auto mb-4">
+                  <Award className="h-8 w-8 text-[#3C3C3B]" />
                 </div>
-                <CardTitle className="text-lg">VIP Status</CardTitle>
+                <CardTitle className="text-lg">Plan Upgrades</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-gray-600">
-                  Unlock exclusive tiers and benefits as you build your loyalty with us.
+                  Upgrade your plan anytime to earn bonus points and unlock higher tier benefits instantly.
                 </p>
               </CardContent>
             </Card>
@@ -144,23 +180,36 @@ export default function Landing() {
       </div>
 
       {/* CTA Section */}
-      <div className="py-24 bg-primary">
+      <div className="py-24 bg-[#3C3C3B]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl font-bold text-white mb-4">
-            Ready to Start Earning Rewards?
+            Ready to Join Maverick Loyalty?
           </h2>
-          <p className="text-xl text-gray-100 mb-8">
-            Join thousands of satisfied customers who are already enjoying the benefits.
+          <p className="text-xl text-gray-300 mb-8">
+            Choose your authentication method and start earning tier-based rewards today.
           </p>
-          <Button 
-            onClick={() => window.location.href = '/api/login'}
-            size="lg"
-            variant="secondary"
-            className="bg-white text-primary hover:bg-gray-100 text-lg px-8 py-3"
-            data-testid="button-join-now"
-          >
-            Join Maverick Now
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link href="/email-auth">
+              <Button 
+                size="lg"
+                className="bg-[#FDC800] hover:bg-[#FDC800]/90 text-[#3C3C3B] text-lg px-8 py-3 font-semibold"
+                data-testid="button-cta-email"
+              >
+                <Mail className="h-5 w-5 mr-2" />
+                Start with Email & Plan Selection
+              </Button>
+            </Link>
+            <Button 
+              onClick={() => setShowPhoneLogin(true)}
+              size="lg"
+              variant="secondary"
+              className="bg-white text-[#3C3C3B] hover:bg-gray-100 text-lg px-8 py-3"
+              data-testid="button-cta-phone"
+            >
+              <Smartphone className="h-5 w-5 mr-2" />
+              Continue with Phone (SA)
+            </Button>
+          </div>
         </div>
       </div>
 
