@@ -8,21 +8,30 @@ Preferred communication style: Simple, everyday language.
 
 # Recent Project Completion
 
-## Enterprise-Grade Expansion (January 2025)
+## Maverick Tier System Integration (January 2025)
+- **COMPLETED**: Successfully adapted sophisticated loyalty app to new Maverick 4-tier system
+- **Database Schema**: Updated with password and currentPlan fields for email authentication
+- **Authentication System**: Dual system supporting both SA phone numbers (+27) and email/password
+- **Tier System**: Implemented exact 4-tier Maverick system (Starter, Explorer, Champion, Elite)
+- **Plan Integration**: Complete plan-to-tier mapping with automatic point allocation
+- **Point System**: Plan selection rewards (100-500 points) and cumulative upgrade bonuses
+- **Landing Page**: Fully updated to showcase tier system and dual authentication options
+- **Components**: Created EmailRegistration and PlanUpgrade components with tier preview
+
+## Enterprise-Grade Foundation (January 2025)
 - Successfully expanded to enterprise-grade Maverick Telecom Loyalty App (MAV-LOY-2025)
 - Implemented comprehensive database schema with 8 new enterprise tables
 - Created three core enterprise services: NotificationService, CampaignService, PointsEngineService
 - Enhanced storage layer with full enterprise feature support
 - Maintained exact Maverick brand colors: #3C3C3B (Dark Gray), #FDC800 (Bright Yellow), #A7A9AC (Light Gray)
-- Updated authentication system to South African phone number format (+27 XX XXX XXXX)
 - Foundation ready for 5-week enterprise delivery timeline
 
 ## Current Development Phase
-- **Phase 1 COMPLETED**: Core customer experience with enhanced points engine, tier progression, and comprehensive dashboard
+- **Phase 1 COMPLETED**: Core customer experience with Maverick tier system and dual authentication
 - **Transaction Simulation**: Live testing system for telecom purchases with real-time point calculation
-- **Authentication System**: South African phone number format with multi-network support
-- **Next Phase**: Personalization & engagement features (campaign management, intelligent notifications)
-- **Documentation**: Complete phase documentation created covering all implemented features
+- **Authentication Options**: Both phone (SA format) and email/password with plan selection
+- **Tier Management**: Complete 4-tier system with upgrade functionality and benefit tracking
+- **Next Phase**: Advanced personalization & engagement features (campaign management, intelligent notifications)
 
 # System Architecture
 
@@ -36,7 +45,11 @@ The backend follows a RESTful API design built on Express.js with TypeScript. Th
 The application uses PostgreSQL as the primary database with Drizzle ORM for type-safe database operations. The schema is centralized in a shared module and includes tables for user management, rewards catalog, transaction history, redemptions, offers, social connections, and session storage. The database supports features like membership tiers, points tracking, and comprehensive audit trails.
 
 ## Authentication and Authorization
-User authentication is handled through Replit's OIDC integration, providing secure login capabilities. The system implements session-based authentication with PostgreSQL session storage using connect-pg-simple. User sessions are configured with HTTP-only cookies and proper security settings for production deployment.
+The system supports dual authentication methods:
+1. **Phone Authentication**: South African phone numbers (+27 format) via Replit OIDC integration
+2. **Email Authentication**: Email/password with plan selection and automatic tier assignment
+
+Both systems use session-based authentication with PostgreSQL session storage via connect-pg-simple. User sessions are configured with HTTP-only cookies and proper security settings. The combined authentication middleware accepts users from either system seamlessly.
 
 ## Component Organization
 The frontend follows a structured component hierarchy with reusable UI components, page-specific components, and layout components. Custom hooks manage authentication state and API interactions. The application supports both authenticated and unauthenticated views with conditional routing based on authentication status.
