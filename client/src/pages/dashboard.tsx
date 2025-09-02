@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import TierProgressCard from "@/components/TierProgressCard";
 import TransactionSimulator from "@/components/TransactionSimulator";
 import MobileOptimizedDashboard from "@/components/MobileOptimizedDashboard";
+import { tierDisplayNames, tierColors } from "@/utils/tierMapping";
 import { 
   Coins, 
   Gift, 
@@ -15,7 +16,8 @@ import {
   Star,
   ShoppingCart,
   Award,
-  Calendar
+  Calendar,
+  Crown
 } from "lucide-react";
 
 interface DashboardStats {
@@ -63,11 +65,11 @@ export default function Dashboard() {
   }
 
   const currentPoints = user.totalPoints || 0;
-  const currentTier = user.membershipTier || 'bronze';
+  const currentTier = user.membershipTier || 'starter';
 
-  // Calculate tier progress
-  const tierRequirements = { bronze: 0, silver: 1000, gold: 5000, platinum: 15000 };
-  const tiers = ['bronze', 'silver', 'gold', 'platinum'];
+  // Calculate tier progress for Maverick system
+  const tierRequirements = { starter: 0, explorer: 500, champion: 1500, elite: 3000 };
+  const tiers = ['starter', 'explorer', 'champion', 'elite'];
   const currentIndex = tiers.indexOf(currentTier);
   const nextTier = currentIndex < tiers.length - 1 ? tiers[currentIndex + 1] : null;
   
@@ -165,8 +167,8 @@ export default function Dashboard() {
                 <TrendingUp className="h-5 w-5 text-blue-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-[#3C3C3B] capitalize">
-                  {currentTier}
+                <p className="text-2xl font-bold text-[#3C3C3B]">
+                  {tierDisplayNames[currentTier as keyof typeof tierDisplayNames] || 'Maverick Starter'}
                 </p>
                 <p className="text-xs text-gray-600">Current Tier</p>
               </div>

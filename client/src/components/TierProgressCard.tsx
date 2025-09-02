@@ -1,7 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Crown, Star, Award, Gem } from "lucide-react";
+import { Crown, Star, Compass, Trophy, Gem } from "lucide-react";
+import { tierDisplayNames, tierColors, tierBenefits } from "@/utils/tierMapping";
 
 interface TierProgressCardProps {
   currentTier: string;
@@ -12,24 +13,10 @@ interface TierProgressCardProps {
 }
 
 const tierIcons = {
-  bronze: Star,
-  silver: Award,
-  gold: Crown,
-  platinum: Gem,
-};
-
-const tierColors = {
-  bronze: "#CD7F32",
-  silver: "#C0C0C0", 
-  gold: "#FFD700",
-  platinum: "#E5E4E2",
-};
-
-const tierBenefits = {
-  bronze: ["1x Point Multiplier", "Basic Support"],
-  silver: ["1.2x Point Multiplier", "Exclusive Offers", "Birthday Bonus"],
-  gold: ["1.5x Point Multiplier", "Free Shipping", "Anniversary Bonus", "Priority Offers"],
-  platinum: ["2x Point Multiplier", "VIP Support", "Quarterly Bonus", "Early Access"],
+  starter: Star,
+  explorer: Compass,
+  champion: Trophy,
+  elite: Crown,
 };
 
 export default function TierProgressCard({ 
@@ -42,8 +29,9 @@ export default function TierProgressCard({
   const CurrentIcon = tierIcons[currentTier as keyof typeof tierIcons] || Star;
   const NextIcon = nextTier ? tierIcons[nextTier as keyof typeof tierIcons] : null;
   
-  const currentColor = tierColors[currentTier as keyof typeof tierColors];
-  const benefits = tierBenefits[currentTier as keyof typeof tierBenefits] || [];
+  const currentColor = tierColors[currentTier as keyof typeof tierColors] || tierColors.starter;
+  const benefits = tierBenefits[currentTier as keyof typeof tierBenefits] || tierBenefits.starter;
+  const displayName = tierDisplayNames[currentTier as keyof typeof tierDisplayNames] || 'Maverick Starter';
 
   return (
     <Card className="bg-gradient-to-br from-gray-50 to-white border-2" data-testid="card-tier-progress">
@@ -54,17 +42,16 @@ export default function TierProgressCard({
               <CurrentIcon className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: currentColor }} />
             </div>
             <div className="min-w-0">
-              <CardTitle className="text-base sm:text-lg capitalize text-[#3C3C3B]">
-                {currentTier} Member
+              <CardTitle className="text-base sm:text-lg text-[#3C3C3B]">
+                {displayName}
               </CardTitle>
               <p className="text-sm text-gray-600">{currentPoints.toLocaleString()} points</p>
             </div>
           </div>
           <Badge 
-            className="capitalize font-semibold text-xs sm:text-sm w-fit"
+            className="capitalize font-semibold text-xs sm:text-sm w-fit text-white"
             style={{ 
-              backgroundColor: currentColor, 
-              color: currentTier === 'silver' || currentTier === 'platinum' ? '#000' : '#fff'
+              backgroundColor: currentColor
             }}
             data-testid={`badge-tier-${currentTier}`}
           >
@@ -73,7 +60,7 @@ export default function TierProgressCard({
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 sm:space-y-6">
         {/* Current Tier Benefits */}
         <div>
           <h4 className="font-semibold text-sm text-[#3C3C3B] mb-2">Your Benefits</h4>
@@ -101,7 +88,7 @@ export default function TierProgressCard({
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <h4 className="font-semibold text-sm text-[#3C3C3B]">
-                Progress to {nextTier.charAt(0).toUpperCase() + nextTier.slice(1)}
+                Progress to {tierDisplayNames[nextTier as keyof typeof tierDisplayNames] || nextTier}
               </h4>
               {NextIcon && (
                 <NextIcon 
@@ -126,7 +113,7 @@ export default function TierProgressCard({
             {/* Next Tier Preview */}
             <div className="mt-3 p-3 bg-gray-50 rounded-lg">
               <p className="text-xs text-gray-600 mb-1">
-                Unlock with {nextTier.charAt(0).toUpperCase() + nextTier.slice(1)}:
+                Unlock with {tierDisplayNames[nextTier as keyof typeof tierDisplayNames] || nextTier}:
               </p>
               <div className="flex flex-wrap gap-1">
                 {tierBenefits[nextTier as keyof typeof tierBenefits]?.slice(0, 2).map((benefit, index) => (
@@ -146,13 +133,13 @@ export default function TierProgressCard({
 
         {/* Max Tier Reached */}
         {!nextTier && (
-          <div className="text-center p-3 bg-gradient-to-r from-yellow-50 to-amber-50 rounded-lg">
-            <Gem className="h-8 w-8 mx-auto mb-2 text-[#FDC800]" />
+          <div className="text-center p-3 bg-gradient-to-r from-[#FDC800]/20 to-yellow-50 rounded-lg">
+            <Crown className="h-8 w-8 mx-auto mb-2 text-[#FDC800]" />
             <p className="text-sm font-semibold text-[#3C3C3B]">
               Maximum Tier Achieved!
             </p>
             <p className="text-xs text-gray-600">
-              You've reached the highest loyalty level
+              You've reached the highest Maverick loyalty level
             </p>
           </div>
         )}
