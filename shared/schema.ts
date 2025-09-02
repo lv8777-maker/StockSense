@@ -27,17 +27,19 @@ export const sessions = pgTable(
 // User storage table (required for Replit Auth)
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  phoneNumber: varchar("phone_number").unique().notNull(), // MTN cell phone number as primary identifier
-  email: varchar("email"), // Optional email for notifications
+  phoneNumber: varchar("phone_number").unique(), // MTN cell phone number as primary identifier
+  email: varchar("email").unique(), // Required for new system
+  password: varchar("password"), // Required for email/password auth
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
   dateOfBirth: timestamp("date_of_birth"),
   gender: varchar("gender"),
   location: varchar("location"),
+  currentPlan: varchar("current_plan"), // Essential, Core, Plus, Prime, Deluxe, Elite, Bronze, Silver, Gold, Platinum
   totalPoints: integer("total_points").default(0),
   memberSince: timestamp("member_since").defaultNow(),
-  membershipTier: varchar("membership_tier").default('bronze'), // bronze, silver, gold, platinum
+  membershipTier: varchar("membership_tier").default('starter'), // starter, explorer, champion, elite
   isActive: boolean("is_active").default(true),
   emailNotifications: boolean("email_notifications").default(true),
   pushNotifications: boolean("push_notifications").default(false),
