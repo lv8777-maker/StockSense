@@ -14,6 +14,7 @@ import Admin from "@/pages/admin";
 import Campaigns from "@/pages/campaigns";
 import Notifications from "@/pages/notifications";
 import NotFound from "@/pages/not-found";
+import EmailRegistration from "@/components/EmailRegistration";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -21,7 +22,10 @@ function Router() {
   return (
     <Switch>
       {isLoading || !isAuthenticated ? (
-        <Route path="/" component={Landing} />
+        <>
+          <Route path="/" component={Landing} />
+          <Route path="/email-auth" component={EmailRegistration} />
+        </>
       ) : (
         <>
           <Route path="/" component={Home} />

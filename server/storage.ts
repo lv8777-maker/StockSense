@@ -50,6 +50,14 @@ export interface IStorage {
   getUserByPhone(phoneNumber: string): Promise<User | undefined>;
   createUserWithPhone(userData: { phoneNumber: string; firstName?: string; lastName?: string }): Promise<User>;
   
+  // Email authentication methods
+  getUserByEmail(email: string): Promise<User | undefined>;
+  createUserWithEmail(userData: { email: string; password: string; firstName: string; lastName: string; currentPlan: string }): Promise<User>;
+  validateUserPassword(email: string, password: string): Promise<User | null>;
+  
+  // Plan upgrade methods
+  upgradePlan(userId: string, newPlan: string): Promise<{ user: User; pointsEarned: number }>;
+  
   // Rewards operations
   getAllRewards(): Promise<Reward[]>;
   getActiveRewards(): Promise<Reward[]>;
@@ -140,7 +148,7 @@ export class DatabaseStorage implements IStorage {
         firstName: userData.firstName || '',
         lastName: userData.lastName || '',
         totalPoints: 0,
-        membershipTier: 'bronze',
+        membershipTier: 'starter',
         isActive: true,
         emailNotifications: false,
         pushNotifications: true,
@@ -149,6 +157,107 @@ export class DatabaseStorage implements IStorage {
       .returning();
     
     return newUser;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
+    
+    return user;
+  }
+
+  async createUserWithEmail(userData: { email: string; password: string; firstName: string; lastName: string; currentPlan: string }): Promise<User> {
+    // Map plan to tier and get points
+    const tierMapping: Record<string, { tier: string; points: number }> = {
+      'Essential': { tier: 'starter', points: 100 },
+      'Core': { tier: 'starter', points: 100 },
+      'Plus': { tier: 'explorer', points: 200 },
+      'Prime': { tier: 'explorer', points: 200 },
+      'Deluxe': { tier: 'champion', points: 300 },
+      'Elite': { tier: 'champion', points: 300 },
+      'Bronze': { tier: 'elite', points: 500 },
+      'Silver': { tier: 'elite', points: 500 },
+      'Gold': { tier: 'elite', points: 500 },
+      'Platinum': { tier: 'elite', points: 500 },
+    };
+
+    const planInfo = tierMapping[userData.currentPlan] || { tier: 'starter', points: 100 };
+
+    const [newUser] = await db
+      .insert(users)
+      .values({
+        email: userData.email,
+        password: userData.password, // In production, this should be hashed
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        currentPlan: userData.currentPlan,
+        totalPoints: planInfo.points,
+        membershipTier: planInfo.tier,
+        isActive: true,
+        emailNotifications: true,
+        pushNotifications: false,
+        marketingMessages: true,
+      })
+      .returning();
+    
+    return newUser;
+  }
+
+  async validateUserPassword(email: string, password: string): Promise<User | null> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(and(eq(users.email, email), eq(users.password, password)))
+      .limit(1);
+    
+    return user || null;
+  }
+
+  async upgradePlan(userId: string, newPlan: string): Promise<{ user: User; pointsEarned: number }> {
+    const tierMapping: Record<string, { tier: string; points: number }> = {
+      'Essential': { tier: 'starter', points: 100 },
+      'Core': { tier: 'starter', points: 100 },
+      'Plus': { tier: 'explorer', points: 200 },
+      'Prime': { tier: 'explorer', points: 200 },
+      'Deluxe': { tier: 'champion', points: 300 },
+      'Elite': { tier: 'champion', points: 300 },
+      'Bronze': { tier: 'elite', points: 500 },
+      'Silver': { tier: 'elite', points: 500 },
+      'Gold': { tier: 'elite', points: 500 },
+      'Platinum': { tier: 'elite', points: 500 },
+    };
+
+    const planInfo = tierMapping[newPlan] || { tier: 'starter', points: 100 };
+    
+    // Update user's plan, tier, and add points
+    const [updatedUser] = await db
+      .update(users)
+      .set({
+        currentPlan: newPlan,
+        membershipTier: planInfo.tier,
+        totalPoints: sql`${users.totalPoints} + ${planInfo.points}`,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId))
+      .returning();
+
+    // Create a transaction record for the upgrade
+    await this.createTransaction({
+      userId,
+      type: 'earning',
+      description: `Plan upgrade to ${newPlan} - Tier bonus points`,
+      amount: 0,
+      pointsEarned: planInfo.points,
+      pointsSpent: 0,
+      category: 'upgrade',
+      status: 'completed',
+      orderId: `UPGRADE-${Date.now()}`,
+    });
+
+    return { user: updatedUser, pointsEarned: planInfo.points };
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {

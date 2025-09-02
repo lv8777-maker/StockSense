@@ -1,23 +1,14 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Gift, Star, Users, Award, Smartphone } from "lucide-react";
+import { Gift, Star, Users, Award, Smartphone, Mail, Crown } from "lucide-react";
 import PhoneLogin from "@/components/PhoneLogin";
+import { Link } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 
 export default function Landing() {
-  const [showLogin, setShowLogin] = useState(false);
+  const [showPhoneLogin, setShowPhoneLogin] = useState(false);
   const queryClient = useQueryClient();
-
-  const handleLoginSuccess = () => {
-    setShowLogin(false);
-    queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-    window.location.reload(); // Refresh to load authenticated app
-  };
-
-  if (showLogin) {
-    return <PhoneLogin onLoginSuccess={handleLoginSuccess} />;
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
@@ -34,14 +25,25 @@ export default function Landing() {
                 <span className="text-xs text-gray-500">Loyalty Program</span>
               </div>
             </div>
-            <Button 
-              onClick={() => setShowLogin(true)}
-              className="bg-[#FDC800] hover:bg-[#FDC800]/90 text-[#3C3C3B] font-semibold"
-              data-testid="button-login"
-            >
-              <Smartphone className="h-4 w-4 mr-2" />
-              Sign In with Phone
-            </Button>
+            <div className="flex space-x-2">
+              <Link href="/email-auth">
+                <Button 
+                  className="bg-[#FDC800] hover:bg-[#FDC800]/90 text-[#3C3C3B] font-semibold"
+                  data-testid="button-email-login"
+                >
+                  <Mail className="h-4 w-4 mr-2" />
+                  Email Login
+                </Button>
+              </Link>
+              <Button 
+                onClick={() => setShowPhoneLogin(true)}
+                variant="outline"
+                data-testid="button-phone-login"
+              >
+                <Smartphone className="h-4 w-4 mr-2" />
+                Phone Login
+              </Button>
+            </div>
           </div>
         </div>
       </header>
@@ -166,13 +168,33 @@ export default function Landing() {
       <footer className="bg-gray-900 text-white py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <h3 className="text-2xl font-bold mb-4">CustomerConnect</h3>
+            <h3 className="text-2xl font-bold mb-4">Maverick Loyalty</h3>
             <p className="text-gray-400">
-              Modern loyalty programs for the digital age.
+              Advanced loyalty programs for telecom excellence.
             </p>
           </div>
         </div>
       </footer>
+
+      {/* Phone Login Modal */}
+      {showPhoneLogin && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold text-[#3C3C3B]">Phone Authentication</h2>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setShowPhoneLogin(false)}
+                className="h-6 w-6 p-0"
+              >
+                ×
+              </Button>
+            </div>
+            <PhoneLogin />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
