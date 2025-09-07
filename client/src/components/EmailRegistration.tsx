@@ -17,7 +17,7 @@ export default function EmailRegistration() {
     email: "",
     password: "",
     confirmPassword: "",
-    currentPlan: ""
+    currentPlan: undefined
   });
   const [isLogin, setIsLogin] = useState(true);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -214,7 +214,7 @@ export default function EmailRegistration() {
                   <Label htmlFor="currentPlan" className="text-sm font-medium">
                     Select Your Current Plan *
                   </Label>
-                  <Select value={formData.currentPlan} onValueChange={(value) => setFormData({...formData, currentPlan: value})}>
+                  <Select value={formData.currentPlan || ""} onValueChange={(value) => setFormData({...formData, currentPlan: value})}>
                     <SelectTrigger className={errors.currentPlan ? "border-red-500" : ""} data-testid="select-plan">
                       <SelectValue placeholder="Choose your plan" />
                     </SelectTrigger>
