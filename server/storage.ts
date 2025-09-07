@@ -58,6 +58,9 @@ export interface IStorage {
   // Plan upgrade methods
   upgradePlan(userId: string, newPlan: string): Promise<{ user: User; pointsEarned: number }>;
   
+  // Phone number management
+  deregisterPhoneNumber(userId: string): Promise<User>;
+  
   // Rewards operations
   getAllRewards(): Promise<Reward[]>;
   getActiveRewards(): Promise<Reward[]>;
@@ -249,15 +252,27 @@ export class DatabaseStorage implements IStorage {
       userId,
       type: 'earning',
       description: `Plan upgrade to ${newPlan} - Tier bonus points`,
-      amount: 0,
+      amount: "0.00",
       pointsEarned: planInfo.points,
       pointsSpent: 0,
-      category: 'upgrade',
       status: 'completed',
       orderId: `UPGRADE-${Date.now()}`,
     });
 
     return { user: updatedUser, pointsEarned: planInfo.points };
+  }
+
+  async deregisterPhoneNumber(userId: string): Promise<User> {
+    const [updatedUser] = await db
+      .update(users)
+      .set({
+        phoneNumber: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    
+    return updatedUser;
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {
