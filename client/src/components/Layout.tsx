@@ -1,5 +1,8 @@
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
+import { useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +23,34 @@ interface LayoutProps {
 export default function Layout({ children }: LayoutProps) {
   const { user } = useAuth();
   const [location] = useLocation();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const handleLogout = async () => {
+    try {
+      await apiRequest("/api/auth/logout", {
+        method: "POST",
+      });
+      
+      // Clear all cached data
+      queryClient.clear();
+      
+      // Show success message
+      toast({
+        title: "Signed out successfully",
+        description: "You have been logged out of your account.",
+      });
+      
+      // Redirect to home page
+      window.location.href = "/";
+    } catch (error) {
+      toast({
+        title: "Logout error",
+        description: "There was an issue signing you out. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const navItems = [
     { href: "/", label: "Dashboard", id: "dashboard" },
@@ -85,7 +116,7 @@ export default function Layout({ children }: LayoutProps) {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => window.location.href = '/api/logout'} data-testid="button-logout">
+                  <DropdownMenuItem onClick={handleLogout} data-testid="button-logout">
                     <LogOut className="mr-2 h-4 w-4" />
                     Sign Out
                   </DropdownMenuItem>
