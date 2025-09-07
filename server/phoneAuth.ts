@@ -91,10 +91,9 @@ export async function setupPhoneAuth(app: Express) {
             userId: user.id,
             type: 'earning' as const,
             description: 'Welcome bonus for new account creation',
-            amount: 0,
+            amount: "0.00",
             pointsEarned: 50,
             pointsSpent: 0,
-            category: 'bonus',
             status: 'completed' as const,
             orderId: `WELCOME-${user.id.substring(0, 8)}`,
           });

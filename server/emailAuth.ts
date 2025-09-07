@@ -49,10 +49,9 @@ export async function setupEmailAuth(app: Express) {
         userId: user.id,
         type: 'earning',
         description: `Welcome to Maverick Loyalty! Plan selection bonus for ${currentPlan}`,
-        amount: 0,
+        amount: "0.00",
         pointsEarned: user.totalPoints || 0,
         pointsSpent: 0,
-        category: 'welcome',
         status: 'completed',
         orderId: `WELCOME-${user.id.substring(0, 8)}`,
       });
