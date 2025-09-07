@@ -28,9 +28,7 @@ export default function Layout({ children }: LayoutProps) {
 
   const handleLogout = async () => {
     try {
-      await apiRequest("/api/auth/logout", {
-        method: "POST",
-      });
+      await apiRequest("/api/auth/logout", "POST");
       
       // Clear all cached data
       queryClient.clear();
