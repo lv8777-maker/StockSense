@@ -240,7 +240,7 @@ export default function Landing() {
                 ×
               </Button>
             </div>
-            <PhoneLogin />
+            <PhoneLogin onLoginSuccess={() => setShowPhoneLogin(false)} />
           </div>
         </div>
       )}
