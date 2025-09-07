@@ -210,6 +210,17 @@ export default function Landing() {
               Continue with Phone (SA)
             </Button>
           </div>
+          
+          <div className="mt-6 text-center">
+            <Button
+              onClick={() => setShowPhoneLogin(true)}
+              variant="ghost"
+              className="text-gray-300 hover:text-white text-sm underline"
+              data-testid="button-deregister-main"
+            >
+              Need to deregister your phone number?
+            </Button>
+          </div>
         </div>
       </div>
 
