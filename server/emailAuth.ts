@@ -159,6 +159,16 @@ export async function setupEmailAuth(app: Express) {
       res.status(500).json({ message: "Plan upgrade failed" });
     }
   });
+
+  // Logout endpoint for email auth users
+  app.post("/api/auth/logout", (req: any, res) => {
+    req.session.destroy((err: any) => {
+      if (err) {
+        return res.status(500).json({ message: "Logout failed" });
+      }
+      res.json({ success: true });
+    });
+  });
 }
 
 export const isEmailAuthenticated: RequestHandler = async (req: any, res, next) => {

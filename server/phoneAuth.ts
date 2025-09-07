@@ -142,15 +142,6 @@ export async function setupPhoneAuth(app: Express) {
     res.json(req.session.user);
   });
 
-  // Logout endpoint
-  app.post("/api/auth/logout", (req: any, res) => {
-    req.session.destroy((err: any) => {
-      if (err) {
-        return res.status(500).json({ message: "Logout failed" });
-      }
-      res.json({ success: true });
-    });
-  });
 }
 
 export const isAuthenticated: RequestHandler = async (req: any, res, next) => {
