@@ -28,20 +28,26 @@ export default function Layout({ children }: LayoutProps) {
 
   const handleLogout = async () => {
     try {
-      await apiRequest("/api/auth/logout", "POST");
+      const response = await apiRequest("POST", "/api/auth/logout");
       
-      // Clear all cached data
-      queryClient.clear();
-      
-      // Show success message
-      toast({
-        title: "Signed out successfully",
-        description: "You have been logged out of your account.",
-      });
-      
-      // Redirect to home page
-      window.location.href = "/";
+      // Check if the response was successful
+      if (response.ok) {
+        // Clear all cached data
+        queryClient.clear();
+        
+        // Show success message
+        toast({
+          title: "Signed out successfully",
+          description: "You have been logged out of your account.",
+        });
+        
+        // Redirect to home page
+        window.location.href = "/";
+      } else {
+        throw new Error("Logout failed");
+      }
     } catch (error) {
+      console.error("Logout error:", error);
       toast({
         title: "Logout error",
         description: "There was an issue signing you out. Please try again.",
