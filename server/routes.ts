@@ -65,6 +65,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Phone number deregistration route
+  app.delete('/api/user/phone', combinedAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      
+      // Get current user to check if they have a phone number
+      const currentUser = await storage.getUser(userId);
+      if (!currentUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      if (!currentUser.phoneNumber) {
+        return res.status(400).json({ message: "No phone number registered to deregister" });
+      }
+
+      // Deregister the phone number
+      const updatedUser = await storage.deregisterPhoneNumber(userId);
+      
+      res.json({ 
+        message: "Phone number deregistered successfully",
+        user: {
+          ...updatedUser,
+          password: undefined // Don't return password in response
+        }
+      });
+    } catch (error) {
+      console.error("Error deregistering phone number:", error);
+      res.status(500).json({ message: "Failed to deregister phone number" });
+    }
+  });
+
   // Rewards routes
   app.get('/api/rewards', isAuthenticated, async (req, res) => {
     try {
