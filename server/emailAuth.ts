@@ -3,11 +3,12 @@ import session from "express-session";
 import connectPg from "connect-pg-simple";
 import bcrypt from "bcrypt";
 import { storage } from "./storage";
+import { authLimiter, passwordLimiter } from "./rateLimiter";
 import type { Express, RequestHandler } from "express";
 
 export async function setupEmailAuth(app: Express) {
-  // Email/password registration endpoint
-  app.post("/api/auth/register", async (req, res) => {
+  // Email/password registration endpoint with rate limiting
+  app.post("/api/auth/register", authLimiter, async (req, res) => {
     try {
       const { firstName, lastName, email, password, currentPlan } = req.body;
       
@@ -78,8 +79,8 @@ export async function setupEmailAuth(app: Express) {
     }
   });
 
-  // Email/password login endpoint
-  app.post("/api/auth/login", async (req, res) => {
+  // Email/password login endpoint with stricter rate limiting
+  app.post("/api/auth/login", passwordLimiter, async (req, res) => {
     try {
       const { email, password } = req.body;
       

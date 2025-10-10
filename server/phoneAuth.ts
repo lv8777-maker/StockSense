@@ -2,6 +2,7 @@ import express from "express";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { storage } from "./storage";
+import { authLimiter } from "./rateLimiter";
 import type { Express, RequestHandler } from "express";
 
 export function getSession() {
@@ -57,8 +58,8 @@ export async function setupPhoneAuth(app: Express) {
   app.set("trust proxy", 1);
   app.use(getSession());
 
-  // Phone number registration/login endpoint
-  app.post("/api/auth/phone", async (req, res) => {
+  // Phone number registration/login endpoint with rate limiting
+  app.post("/api/auth/phone", authLimiter, async (req, res) => {
     try {
       const { phoneNumber, firstName, lastName, currentPlan } = req.body;
       
