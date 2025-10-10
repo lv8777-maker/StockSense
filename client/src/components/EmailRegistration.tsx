@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +24,7 @@ export default function EmailRegistration() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
 
   const authMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -37,6 +39,11 @@ export default function EmailRegistration() {
           : `Welcome to Maverick Loyalty! You've been assigned to ${getTierFromPlan(formData.currentPlan).displayName} tier and earned ${getTierFromPlan(formData.currentPlan).points} points!`,
       });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      
+      // Redirect to dashboard after successful authentication
+      setTimeout(() => {
+        setLocation("/dashboard");
+      }, 500);
     },
     onError: (error: Error) => {
       toast({
