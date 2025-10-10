@@ -60,7 +60,7 @@ export async function setupPhoneAuth(app: Express) {
   // Phone number registration/login endpoint
   app.post("/api/auth/phone", async (req, res) => {
     try {
-      const { phoneNumber, firstName, lastName } = req.body;
+      const { phoneNumber, firstName, lastName, currentPlan } = req.body;
       
       if (!phoneNumber) {
         return res.status(400).json({ message: "Phone number is required" });
@@ -78,33 +78,31 @@ export async function setupPhoneAuth(app: Express) {
       let user = await storage.getUserByPhone(normalizedPhone);
       
       if (!user) {
-        // Create new user
+        // Create new user with plan selection (points are allocated in storage layer)
         user = await storage.createUserWithPhone({
           phoneNumber: normalizedPhone,
           firstName: firstName || '',
           lastName: lastName || '',
+          currentPlan: currentPlan,
         });
 
-        // Award 50 bonus points for new account creation
-        try {
-          await storage.createTransaction({
-            userId: user.id,
-            type: 'earning' as const,
-            description: 'Welcome bonus for new account creation',
-            amount: "0.00",
-            pointsEarned: 50,
-            pointsSpent: 0,
-            status: 'completed' as const,
-            orderId: `WELCOME-${user.id.substring(0, 8)}`,
-          });
-          
-          // Update user's total points
-          user = await storage.updateUserProfile(user.id, { 
-            totalPoints: (user.totalPoints || 0) + 50 
-          });
-        } catch (error) {
-          console.error("Error awarding welcome bonus:", error);
-          // Don't fail account creation if bonus fails
+        // Create welcome transaction to record the points allocation
+        if (currentPlan && user.totalPoints > 0) {
+          try {
+            await storage.createTransaction({
+              userId: user.id,
+              type: 'earning' as const,
+              description: `Welcome to Maverick Loyalty! Plan selection bonus for ${currentPlan}`,
+              amount: "0.00",
+              pointsEarned: user.totalPoints,
+              pointsSpent: 0,
+              status: 'completed' as const,
+              orderId: `WELCOME-${user.id.substring(0, 8)}`,
+            });
+          } catch (error) {
+            console.error("Error creating welcome transaction:", error);
+            // Don't fail account creation if transaction creation fails
+          }
         }
       }
 
@@ -114,6 +112,7 @@ export async function setupPhoneAuth(app: Express) {
         phoneNumber: user.phoneNumber,
         firstName: user.firstName,
         lastName: user.lastName,
+        currentPlan: user.currentPlan,
         totalPoints: user.totalPoints,
         membershipTier: user.membershipTier,
       };

@@ -48,7 +48,7 @@ export interface IStorage {
   
   // Phone authentication methods
   getUserByPhone(phoneNumber: string): Promise<User | undefined>;
-  createUserWithPhone(userData: { phoneNumber: string; firstName?: string; lastName?: string }): Promise<User>;
+  createUserWithPhone(userData: { phoneNumber: string; firstName?: string; lastName?: string; currentPlan?: string }): Promise<User>;
   
   // Email authentication methods
   getUserByEmail(email: string): Promise<User | undefined>;
@@ -143,15 +143,34 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async createUserWithPhone(userData: { phoneNumber: string; firstName?: string; lastName?: string }): Promise<User> {
+  async createUserWithPhone(userData: { phoneNumber: string; firstName?: string; lastName?: string; currentPlan?: string }): Promise<User> {
+    // Map plan to tier and get initial points (same logic as email)
+    const tierMapping: Record<string, { tier: string; points: number }> = {
+      'Essential': { tier: 'starter', points: 100 },
+      'Core': { tier: 'starter', points: 100 },
+      'Plus': { tier: 'explorer', points: 200 },
+      'Prime': { tier: 'explorer', points: 200 },
+      'Deluxe': { tier: 'champion', points: 300 },
+      'Elite': { tier: 'champion', points: 300 },
+      'Bronze': { tier: 'elite', points: 500 },
+      'Silver': { tier: 'elite', points: 500 },
+      'Gold': { tier: 'elite', points: 500 },
+      'Platinum': { tier: 'elite', points: 500 },
+    };
+
+    const planInfo = userData.currentPlan 
+      ? (tierMapping[userData.currentPlan] || { tier: 'starter', points: 0 })
+      : { tier: 'starter', points: 0 };
+
     const [newUser] = await db
       .insert(users)
       .values({
         phoneNumber: userData.phoneNumber,
         firstName: userData.firstName || '',
         lastName: userData.lastName || '',
-        totalPoints: 0,
-        membershipTier: 'starter',
+        currentPlan: userData.currentPlan,
+        totalPoints: planInfo.points,
+        membershipTier: planInfo.tier,
         isActive: true,
         emailNotifications: false,
         pushNotifications: true,
