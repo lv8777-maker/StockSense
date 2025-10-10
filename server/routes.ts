@@ -1,4 +1,5 @@
 import type { Express } from "express";
+import express from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupPhoneAuth, isAuthenticated } from "./phoneAuth";
@@ -786,7 +787,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Serve uploaded receipts as static files
-  const express = require('express');
   app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
   const httpServer = createServer(app);

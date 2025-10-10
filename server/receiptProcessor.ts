@@ -57,17 +57,19 @@ export async function processReceiptImage(imagePath: string): Promise<ProcessedR
     if (ocrText.includes('airtime')) {
       purchaseType = 'airtime';
       
-      // Extract amount using regex patterns
+      // Extract amount using regex patterns (supports currency symbols, thousands separators, non-breaking spaces)
       const airtimePatterns = [
-        /airtime[:\s]*r?[\s]*(\d+(?:\.\d{2})?)/i,
-        /r[\s]*(\d+(?:\.\d{2})?)[^\d]*airtime/i,
-        /(\d+(?:\.\d{2})?)[^\d]*airtime/i,
+        /airtime[:\s]*r?[\s\u00A0]*([\d,\s\u00A0]+(?:\.\d{2})?)/i,
+        /r[\s\u00A0]*([\d,\s\u00A0]+(?:\.\d{2})?)[^\d]*airtime/i,
+        /([\d,\s\u00A0]+(?:\.\d{2})?)[^\d]*airtime/i,
       ];
 
       for (const pattern of airtimePatterns) {
         const match = text.match(pattern);
         if (match && match[1]) {
-          detectedAmount = parseFloat(match[1]);
+          // Normalize amount by removing commas, spaces, and non-breaking spaces before parsing
+          const normalizedAmount = match[1].replace(/[,\s\u00A0]/g, '');
+          detectedAmount = parseFloat(normalizedAmount);
           break;
         }
       }
@@ -89,17 +91,19 @@ export async function processReceiptImage(imagePath: string): Promise<ProcessedR
         ocrText.includes('case') || ocrText.includes('headphone')) {
       purchaseType = 'accessory';
       
-      // Extract amount using regex patterns
+      // Extract amount using regex patterns (supports currency symbols, thousands separators, non-breaking spaces)
       const amountPatterns = [
-        /total[:\s]*r?[\s]*(\d+(?:\.\d{2})?)/i,
-        /amount[:\s]*r?[\s]*(\d+(?:\.\d{2})?)/i,
-        /r[\s]*(\d+(?:\.\d{2})?)/i,
+        /total[:\s]*r?[\s\u00A0]*([\d,\s\u00A0]+(?:\.\d{2})?)/i,
+        /amount[:\s]*r?[\s\u00A0]*([\d,\s\u00A0]+(?:\.\d{2})?)/i,
+        /r[\s\u00A0]*([\d,\s\u00A0]+(?:\.\d{2})?)/i,
       ];
 
       for (const pattern of amountPatterns) {
         const match = text.match(pattern);
         if (match && match[1]) {
-          detectedAmount = parseFloat(match[1]);
+          // Normalize amount by removing commas, spaces, and non-breaking spaces before parsing
+          const normalizedAmount = match[1].replace(/[,\s\u00A0]/g, '');
+          detectedAmount = parseFloat(normalizedAmount);
           break;
         }
       }
