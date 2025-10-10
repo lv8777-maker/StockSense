@@ -5,8 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { availablePlans, getTierFromPlan } from "@/utils/tierMapping";
 import { Phone, User, Smartphone, UserMinus, AlertTriangle } from "lucide-react";
 
 interface PhoneLoginProps {
@@ -17,6 +19,7 @@ export default function PhoneLogin({ onLoginSuccess }: PhoneLoginProps) {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [currentPlan, setCurrentPlan] = useState<string>("");
   const [isNewUser, setIsNewUser] = useState(false);
   const [showDeregister, setShowDeregister] = useState(false);
   const [deregisterPhone, setDeregisterPhone] = useState("");
@@ -24,7 +27,7 @@ export default function PhoneLogin({ onLoginSuccess }: PhoneLoginProps) {
   const queryClient = useQueryClient();
 
   const loginMutation = useMutation({
-    mutationFn: async (data: { phoneNumber: string; firstName?: string; lastName?: string }) => {
+    mutationFn: async (data: { phoneNumber: string; firstName?: string; lastName?: string; currentPlan?: string }) => {
       const response = await fetch("/api/auth/phone", {
         method: "POST",
         headers: {
@@ -44,9 +47,12 @@ export default function PhoneLogin({ onLoginSuccess }: PhoneLoginProps) {
     },
     onSuccess: (data) => {
       if (data.success) {
+        const planInfo = currentPlan ? getTierFromPlan(currentPlan) : null;
         toast({
           title: "Welcome to Maverick Loyalty!",
-          description: `Successfully signed in with ${data.user.phoneNumber}`,
+          description: planInfo 
+            ? `Successfully signed in! You've been assigned to ${planInfo.displayName} tier and earned ${planInfo.points} points!`
+            : `Successfully signed in with ${data.user.phoneNumber}`,
         });
         queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
         onLoginSuccess();
@@ -158,8 +164,17 @@ export default function PhoneLogin({ onLoginSuccess }: PhoneLoginProps) {
         });
         return;
       }
+      if (!currentPlan) {
+        toast({
+          title: "Plan Required",
+          description: "Please select your current plan",
+          variant: "destructive",
+        });
+        return;
+      }
       submitData.firstName = firstName;
       submitData.lastName = lastName;
+      submitData.currentPlan = currentPlan;
     }
 
     loginMutation.mutate(submitData);
@@ -258,6 +273,29 @@ export default function PhoneLogin({ onLoginSuccess }: PhoneLoginProps) {
                       data-testid="input-last-name"
                     />
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="currentPlan" className="text-sm font-medium">
+                    Select Your Current Plan *
+                  </Label>
+                  <Select value={currentPlan} onValueChange={setCurrentPlan}>
+                    <SelectTrigger data-testid="select-plan">
+                      <SelectValue placeholder="Choose your plan" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availablePlans.map((plan) => (
+                        <SelectItem key={plan.value} value={plan.value}>
+                          {plan.label} - {plan.tier}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {currentPlan && (
+                    <p className="text-xs text-green-600">
+                      ✓ You'll earn {getTierFromPlan(currentPlan).points} points and join {getTierFromPlan(currentPlan).displayName} tier
+                    </p>
+                  )}
                 </div>
               </>
             )}
