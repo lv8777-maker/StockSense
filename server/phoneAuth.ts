@@ -114,6 +114,8 @@ export async function setupPhoneAuth(app: Express) {
         phoneNumber: user.phoneNumber,
         firstName: user.firstName,
         lastName: user.lastName,
+        totalPoints: user.totalPoints,
+        membershipTier: user.membershipTier,
       };
 
       res.json({ 
