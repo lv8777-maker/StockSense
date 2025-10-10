@@ -41,6 +41,7 @@ import {
 import { db } from "./db";
 import { eq, desc, sql, and, gte, lte } from "drizzle-orm";
 import { randomUUID } from "crypto";
+import bcrypt from "bcrypt";
 
 export interface IStorage {
   // User operations (required for Replit Auth)
@@ -237,13 +238,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   async validateUserPassword(email: string, password: string): Promise<User | null> {
+    // First, get the user by email
     const [user] = await db
       .select()
       .from(users)
-      .where(and(eq(users.email, email), eq(users.password, password)))
+      .where(eq(users.email, email))
       .limit(1);
     
-    return user || null;
+    if (!user || !user.password) {
+      return null;
+    }
+
+    // Compare the provided password with the hashed password using bcrypt
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    
+    return isPasswordValid ? user : null;
   }
 
   async upgradePlan(userId: string, newPlan: string): Promise<{ user: User; pointsEarned: number }> {
