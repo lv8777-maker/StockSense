@@ -4,6 +4,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupPhoneAuth, isAuthenticated } from "./phoneAuth";
 import { setupEmailAuth, isEmailAuthenticated } from "./emailAuth";
+import { uploadLimiter } from "./rateLimiter";
 import { notificationService } from "./services/NotificationService";
 import { campaignService } from "./services/CampaignService";
 import { pointsEngineService } from "./services/PointsEngineService";
@@ -222,8 +223,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Receipt upload routes
-  app.post('/api/receipts/upload', combinedAuth, upload.single('receipt'), async (req: any, res) => {
+  // Receipt upload routes with rate limiting to prevent OCR abuse
+  app.post('/api/receipts/upload', uploadLimiter, combinedAuth, upload.single('receipt'), async (req: any, res) => {
     try {
       const userId = req.user?.claims?.sub || req.session?.user?.id;
       
