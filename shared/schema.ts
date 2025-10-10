@@ -78,6 +78,24 @@ export const transactions = pgTable("transactions", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Receipt uploads for purchase verification
+export const receiptUploads = pgTable("receipt_uploads", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  transactionId: varchar("transaction_id").references(() => transactions.id),
+  fileName: varchar("file_name").notNull(),
+  fileUrl: varchar("file_url").notNull(),
+  ocrText: text("ocr_text"), // raw OCR extracted text
+  purchaseType: varchar("purchase_type"), // airtime, accessory, plan
+  detectedAmount: decimal("detected_amount", { precision: 10, scale: 2 }),
+  detectedPlan: varchar("detected_plan"), // plan name if detected
+  pointsAwarded: integer("points_awarded").default(0),
+  status: varchar("status").default('processing'), // processing, completed, failed, rejected
+  processingError: text("processing_error"),
+  createdAt: timestamp("created_at").defaultNow(),
+  processedAt: timestamp("processed_at"),
+});
+
 // Reward redemptions
 export const redemptions = pgTable("redemptions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -122,6 +140,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   redemptions: many(redemptions),
   offers: many(offers),
   socialConnections: many(socialConnections),
+  receiptUploads: many(receiptUploads),
 }));
 
 export const rewardsRelations = relations(rewards, ({ many }) => ({
@@ -160,6 +179,17 @@ export const socialConnectionsRelations = relations(socialConnections, ({ one })
   }),
 }));
 
+export const receiptUploadsRelations = relations(receiptUploads, ({ one }) => ({
+  user: one(users, {
+    fields: [receiptUploads.userId],
+    references: [users.id],
+  }),
+  transaction: one(transactions, {
+    fields: [receiptUploads.transactionId],
+    references: [transactions.id],
+  }),
+}));
+
 // Schema types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -176,6 +206,9 @@ export type InsertRedemption = typeof redemptions.$inferInsert;
 
 export type Offer = typeof offers.$inferSelect;
 export type InsertOffer = typeof offers.$inferInsert;
+
+export type ReceiptUpload = typeof receiptUploads.$inferSelect;
+export type InsertReceiptUpload = typeof receiptUploads.$inferInsert;
 
 export const insertRewardSchema = createInsertSchema(rewards).omit({
   id: true,
@@ -206,6 +239,13 @@ export const insertSocialConnectionSchema = createInsertSchema(socialConnections
 });
 export type InsertSocialConnection = z.infer<typeof insertSocialConnectionSchema>;
 export type SocialConnection = typeof socialConnections.$inferSelect;
+
+export const insertReceiptUploadSchema = createInsertSchema(receiptUploads).omit({
+  id: true,
+  createdAt: true,
+  processedAt: true,
+});
+export type InsertReceiptUploadType = z.infer<typeof insertReceiptUploadSchema>;
 
 // Enterprise-grade additions for MAV-LOY-2025
 
