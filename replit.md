@@ -8,6 +8,15 @@ Preferred communication style: Simple, everyday language.
 
 # Recent Project Completion
 
+## Receipt Upload & OCR Points System (October 2025)
+- **COMPLETED**: Implemented automated receipt processing with OCR technology for instant point rewards
+- **Technology**: Tesseract.js OCR engine for text extraction from receipt images
+- **Points Calculation**: Airtime (1pt per R1, min R100), Accessories (tiered: 100/250/500pts), Plans (100-500pts)
+- **Backend**: File upload with multer, OCR processing, automatic transaction creation and points allocation
+- **Frontend**: SubmitPurchase page with drag-drop upload, real-time processing, upload history
+- **Database**: receipt_uploads table tracking all submissions with OCR results and point awards
+- **Edge Cases**: Robust parsing handles thousands separators (commas), non-breaking spaces, varied currency formats
+
 ## Client Feedback Documentation (September 2025)
 - **COMPLETED**: Created comprehensive CLIENT_FEEDBACK_REPORT.md for client presentation
 - **Report Content**: Executive summary, technical architecture, system capabilities, business impact
