@@ -1,6 +1,7 @@
 import express from "express";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
+import bcrypt from "bcrypt";
 import { storage } from "./storage";
 import type { Express, RequestHandler } from "express";
 
@@ -24,12 +25,15 @@ export async function setupEmailAuth(app: Express) {
         });
       }
 
-      // Create new user
+      // Hash password using bcrypt (10 salt rounds for security)
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      // Create new user with hashed password
       const user = await storage.createUserWithEmail({
         firstName,
         lastName,
         email,
-        password, // In production, hash this password
+        password: hashedPassword,
         currentPlan
       });
 
