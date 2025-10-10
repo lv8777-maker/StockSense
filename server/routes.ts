@@ -15,6 +15,10 @@ import {
   insertEarningRuleSchema 
 } from "@shared/schema";
 import { z } from "zod";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
+import { processReceiptImage, isValidReceiptFile } from "./receiptProcessor";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -32,6 +36,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       isEmailAuthenticated(req, res, next);
     });
   };
+
+  // Configure multer for receipt uploads
+  const uploadsDir = path.join(process.cwd(), 'uploads', 'receipts');
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+
+  const upload = multer({
+    storage: multer.diskStorage({
+      destination: (req, file, cb) => {
+        cb(null, uploadsDir);
+      },
+      filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, 'receipt-' + uniqueSuffix + path.extname(file.originalname));
+      }
+    }),
+    limits: {
+      fileSize: 10 * 1024 * 1024, // 10MB max file size
+    },
+    fileFilter: (req, file, cb) => {
+      if (isValidReceiptFile(file.mimetype)) {
+        cb(null, true);
+      } else {
+        cb(new Error('Invalid file type. Only JPEG, PNG, and WebP images are allowed.'));
+      }
+    }
+  });
 
   // Auth routes
   app.get('/api/auth/user', combinedAuth, async (req: any, res) => {
@@ -186,6 +218,113 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error creating transaction:", error);
       res.status(500).json({ message: "Failed to create transaction" });
+    }
+  });
+
+  // Receipt upload routes
+  app.post('/api/receipts/upload', combinedAuth, upload.single('receipt'), async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub || req.session?.user?.id;
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ message: "No receipt file uploaded" });
+      }
+
+      const filePath = req.file.path;
+      const fileName = req.file.filename;
+      const fileUrl = `/uploads/receipts/${fileName}`;
+
+      // Create initial receipt upload record
+      const receiptUpload = await storage.createReceiptUpload({
+        userId,
+        fileName,
+        fileUrl,
+        status: 'processing',
+      });
+
+      // Process receipt with OCR in background
+      try {
+        const processed = await processReceiptImage(filePath);
+
+        // Create transaction if points were awarded
+        let transactionId = null;
+        if (processed.pointsAwarded > 0) {
+          const transaction = await storage.createTransaction({
+            userId,
+            type: 'earning',
+            description: processed.description,
+            amount: processed.detectedAmount?.toString() || '0.00',
+            pointsEarned: processed.pointsAwarded,
+            pointsSpent: 0,
+            status: 'completed',
+            orderId: `RCP-${receiptUpload.id.substring(0, 8)}`,
+          });
+          transactionId = transaction.id;
+
+          // Update user's total points
+          await storage.updateUserPoints(userId, processed.pointsAwarded);
+        }
+
+        // Update receipt upload with processing results
+        const updatedReceipt = await storage.updateReceiptUpload(receiptUpload.id, {
+          transactionId,
+          ocrText: processed.ocrText,
+          purchaseType: processed.purchaseType,
+          detectedAmount: processed.detectedAmount?.toString(),
+          detectedPlan: processed.detectedPlan,
+          pointsAwarded: processed.pointsAwarded,
+          status: 'completed',
+        });
+
+        res.json({
+          success: true,
+          receipt: updatedReceipt,
+          processed: {
+            purchaseType: processed.purchaseType,
+            detectedAmount: processed.detectedAmount,
+            detectedPlan: processed.detectedPlan,
+            pointsAwarded: processed.pointsAwarded,
+            description: processed.description,
+          }
+        });
+
+      } catch (ocrError) {
+        // Update receipt with error status
+        await storage.updateReceiptUpload(receiptUpload.id, {
+          status: 'failed',
+          processingError: ocrError instanceof Error ? ocrError.message : 'OCR processing failed',
+        });
+
+        res.status(500).json({
+          success: false,
+          message: "Failed to process receipt",
+          error: ocrError instanceof Error ? ocrError.message : 'Unknown error'
+        });
+      }
+
+    } catch (error) {
+      console.error("Error uploading receipt:", error);
+      res.status(500).json({ message: "Failed to upload receipt" });
+    }
+  });
+
+  app.get('/api/receipts', combinedAuth, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub || req.session?.user?.id;
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const receipts = await storage.getUserReceiptUploads(userId);
+      res.json(receipts);
+    } catch (error) {
+      console.error("Error fetching receipts:", error);
+      res.status(500).json({ message: "Failed to fetch receipts" });
     }
   });
 
@@ -641,9 +780,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         pointsEngine: true,
         loyaltyAccounts: true,
         analytics: true,
+        receiptUpload: true,
       },
     });
   });
+
+  // Serve uploaded receipts as static files
+  const express = require('express');
+  app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
   const httpServer = createServer(app);
   return httpServer;

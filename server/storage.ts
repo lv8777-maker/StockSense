@@ -5,6 +5,7 @@ import {
   redemptions,
   offers,
   socialConnections,
+  receiptUploads,
   campaigns,
   notifications,
   loyaltyAccounts,
@@ -24,6 +25,8 @@ import {
   type InsertOffer,
   type SocialConnection,
   type InsertSocialConnection,
+  type ReceiptUpload,
+  type InsertReceiptUpload,
   type Campaign,
   type InsertCampaign,
   type Notification,
@@ -90,6 +93,11 @@ export interface IStorage {
   // Social connections
   getUserSocialConnections(userId: string): Promise<SocialConnection[]>;
   createSocialConnection(connection: InsertSocialConnection): Promise<SocialConnection>;
+  
+  // Receipt uploads
+  createReceiptUpload(upload: InsertReceiptUpload): Promise<ReceiptUpload>;
+  getUserReceiptUploads(userId: string, limit?: number): Promise<ReceiptUpload[]>;
+  updateReceiptUpload(id: string, updates: Partial<ReceiptUpload>): Promise<ReceiptUpload>;
   
   // Enterprise features - Campaigns
   getCampaigns(page?: number, limit?: number): Promise<{ campaigns: Campaign[]; total: number; hasMore: boolean; }>;
@@ -513,6 +521,32 @@ export class DatabaseStorage implements IStorage {
       .values(connection)
       .returning();
     return newConnection;
+  }
+
+  async createReceiptUpload(upload: InsertReceiptUpload): Promise<ReceiptUpload> {
+    const [newUpload] = await db
+      .insert(receiptUploads)
+      .values(upload)
+      .returning();
+    return newUpload;
+  }
+
+  async getUserReceiptUploads(userId: string, limit: number = 50): Promise<ReceiptUpload[]> {
+    return await db
+      .select()
+      .from(receiptUploads)
+      .where(eq(receiptUploads.userId, userId))
+      .orderBy(desc(receiptUploads.createdAt))
+      .limit(limit);
+  }
+
+  async updateReceiptUpload(id: string, updates: Partial<ReceiptUpload>): Promise<ReceiptUpload> {
+    const [updated] = await db
+      .update(receiptUploads)
+      .set({ ...updates, processedAt: new Date() })
+      .where(eq(receiptUploads.id, id))
+      .returning();
+    return updated;
   }
 
   // Admin operations

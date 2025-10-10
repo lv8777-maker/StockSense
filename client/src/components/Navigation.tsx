@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Home, Gift, User, History, Bell } from "lucide-react";
+import { ArrowLeft, Home, Gift, User, History, Bell, Upload } from "lucide-react";
 
 interface NavigationProps {
   showBackButton?: boolean;
@@ -11,6 +11,7 @@ export default function Navigation({ showBackButton = false }: NavigationProps) 
 
   const navItems = [
     { path: "/dashboard", label: "Dashboard", icon: Home },
+    { path: "/submit-purchase", label: "Submit Receipt", icon: Upload },
     { path: "/rewards", label: "Rewards", icon: Gift },
     { path: "/history", label: "History", icon: History },
     { path: "/notifications", label: "Notifications", icon: Bell },
