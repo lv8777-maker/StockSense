@@ -1,0 +1,79 @@
+You are an expert full-stack developer building a rewards web app for Maverick Telecommunications using Flask, HTML, CSS, JavaScript, and SQLite. The purpose of this app is to allow clients to upload a purchase receipt and automatically earn points based on the items visible on the receipt.
+
+## Core Features
+
+1. **Receipt Upload and Parsing**
+   - Clients can upload a receipt (image or PDF).
+   - The system automatically analyzes the receipt using OCR (Optical Character Recognition) to detect keywords like "airtime", "accessory", or any tier plan name (from Maverick Tiers below).
+   - Based on detected purchases, the system calculates and allocates the correct points.
+
+2. **Points Calculation Rules**
+
+   **Airtime Purchase**
+   - Points start at R100 = 100 points.
+   - Formula: 1 point per R1 spent on airtime (e.g., R250 = 250 points).
+
+   **Accessory Purchase**
+   - Clients earn points only if the total accessory purchase is R500 or more.
+   - Scale:
+     - R500–R999 = 100 points
+     - R1000–R1999 = 250 points
+     - R2000+ = 500 points
+
+   **Tier-Based Plans (detected by plan name on receipt)**
+   🥉 Maverick Starter Tier - 100 Points
+     - Essential Plan: 100 points
+     - Core Plan: 100 points
+
+   🧭 Maverick Explorer Tier - 200 Points
+     - Plus Plan: 200 points
+     - Prime Plan: 200 points
+
+   🏆 Maverick Champion Tier - 300 Points
+     - Deluxe Plan: 300 points
+     - Elite Plan: 300 points
+
+   👑 Maverick Elite Tier - 500 Points
+     - MTN Sky Bronze: 500 points
+     - MTN Sky Silver: 500 points
+     - MTN Sky Gold: 500 points
+     - MTN Sky Platinum: 500 points
+
+3. **User Interface Requirements**
+   - Simple, mobile-friendly web interface.
+   - Upload form for receipts.
+   - Show detected purchases and automatically calculated points after upload.
+   - Display running total of user’s accumulated points.
+
+4. **Backend Requirements**
+   - Flask server with endpoints:
+     - `/upload` — handles file upload and OCR parsing.
+     - `/calculate` — processes OCR results and applies point rules.
+     - `/points` — retrieves total points for a client.
+   - Use SQLite to store:
+     - User information
+     - Upload history
+     - Earned points
+
+5. **Tech Stack**
+   - Flask (Python)
+   - HTML/CSS/Bootstrap 5
+   - JavaScript (for frontend updates)
+   - SQLite database
+   - Tesseract OCR or an equivalent OCR library for receipt text detection
+
+6. **Output Requirements**
+   - Provide all source code files:
+     - `app.py`
+     - `/templates` for HTML files
+     - `/static` for CSS/JS
+     - Database schema file (`schema.sql`)
+   - Include full logic for OCR text extraction and mapping to purchase types.
+   - Ensure the app automatically awards points based on detected purchases on receipt.
+   - Include instructions to run the app locally on Replit.
+
+## Goal
+When a client uploads a receipt, the system should:
+1. Detect the type of purchase.
+2. Automatically calculate reward points according to Maverick’s reward rules.
+3. Display earned points instantly and update the user’s total in the database.
