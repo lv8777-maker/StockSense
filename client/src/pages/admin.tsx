@@ -36,6 +36,7 @@ import { useToast } from "@/hooks/use-toast";
 import { insertRewardSchema } from "@shared/schema";
 import { Users, Gift, Coins, TrendingUp, Download, Plus } from "lucide-react";
 import { z } from "zod";
+import Navbar from "@/components/Navbar";
 
 const createRewardSchema = insertRewardSchema.extend({
   pointsCost: z.number().min(1, "Points cost must be at least 1"),
@@ -140,7 +141,9 @@ export default function Admin() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <>
+      <Navbar />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex justify-between items-center mb-8">
         <div>
           <h2 className="text-3xl font-bold text-gray-900 mb-2">Admin Panel</h2>
@@ -474,6 +477,7 @@ export default function Admin() {
           </div>
         </TabsContent>
       </Tabs>
-    </div>
+      </div>
+    </>
   );
 }

@@ -16,6 +16,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Plus, Target, TrendingUp, Users, Calendar, Star, Play } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import Navbar from "@/components/Navbar";
 
 const campaignFormSchema = z.object({
   name: z.string().min(1, "Campaign name is required"),
@@ -140,23 +141,31 @@ export default function CampaignsPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-48 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
-          ))}
+      <>
+        <Navbar />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="space-y-6">
+            <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-48 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+              ))}
+            </div>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   const campaigns = campaignsData?.campaigns || [];
 
   return (
-    <div className="space-y-6" data-testid="campaigns-page">
-      {/* Header */}
-      <div className="flex justify-between items-center">
+    <>
+      <Navbar />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="space-y-6" data-testid="campaigns-page">
+          {/* Header */}
+          <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Campaign Management</h1>
           <p className="text-gray-600 dark:text-gray-300">Create and manage marketing campaigns to drive customer engagement</p>
@@ -530,6 +539,8 @@ export default function CampaignsPage() {
           </div>
         </TabsContent>
       </Tabs>
-    </div>
+        </div>
+      </div>
+    </>
   );
 }

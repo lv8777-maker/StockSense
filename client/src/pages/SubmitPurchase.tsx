@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, FileText, CheckCircle, XCircle, Loader2, Receipt, Coins, Award } from "lucide-react";
-import Navigation from "@/components/Navigation";
+import Navbar from "@/components/Navbar";
 
 interface ReceiptUpload {
   id: string;
@@ -145,7 +145,7 @@ export default function SubmitPurchase() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navigation showBackButton={true} />
+      <Navbar />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
         <div className="mb-6 sm:mb-8">
           <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Submit Purchase Receipt</h2>
