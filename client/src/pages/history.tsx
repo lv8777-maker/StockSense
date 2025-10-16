@@ -113,7 +113,7 @@ export default function History() {
               <div>
                 <p className="text-sm font-medium text-gray-500">Total Spent</p>
                 <p className="text-2xl font-bold text-gray-900" data-testid="text-summary-spent">
-                  ${transactionStats?.totalSpent || '0.00'}
+                  R{transactionStats?.totalSpent || '0.00'}
                 </p>
               </div>
               <div className="bg-success bg-opacity-10 p-3 rounded-lg">
@@ -191,7 +191,7 @@ export default function History() {
                         </div>
                       </TableCell>
                       <TableCell data-testid={`text-transaction-amount-${transaction.id}`}>
-                        {transaction.amount ? `$${transaction.amount}` : '$0.00'}
+                        {transaction.amount ? `R${transaction.amount}` : 'R0.00'}
                       </TableCell>
                       <TableCell data-testid={`text-transaction-points-${transaction.id}`}>
                         {getPointsDisplay(transaction)}
