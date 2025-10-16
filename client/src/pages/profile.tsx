@@ -28,7 +28,6 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 import Navbar from "@/components/Navbar";
-import PlanUpgrade from "@/components/PlanUpgrade";
 
 const profileSchema = z.object({
   firstName: z.string().min(2, "First name must be at least 2 characters"),
@@ -408,13 +407,6 @@ export default function Profile() {
               </div>
             </CardContent>
           </Card>
-
-          {/* Plan Upgrade Component */}
-          <PlanUpgrade 
-            currentPlan={user?.currentPlan}
-            currentTier={user?.membershipTier}
-            currentPoints={user?.totalPoints || 0}
-          />
         </div>
       </div>
       </div>
