@@ -4,6 +4,7 @@ import { useResponsive } from "@/hooks/useResponsive";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import Navbar from "@/components/Navbar";
 import TierProgressCard from "@/components/TierProgressCard";
 import TransactionSimulator from "@/components/TransactionSimulator";
 import MobileOptimizedDashboard from "@/components/MobileOptimizedDashboard";
@@ -85,11 +86,18 @@ export default function Dashboard() {
 
   // Show mobile-optimized dashboard on small screens
   if (isMobile) {
-    return <MobileOptimizedDashboard />;
+    return (
+      <>
+        <Navbar />
+        <MobileOptimizedDashboard />
+      </>
+    );
   }
 
   return (
-    <div className="max-w-7xl mx-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
+    <>
+      <Navbar />
+      <div className="max-w-7xl mx-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
       {/* Welcome Header */}
       <div className="bg-gradient-to-r from-[#3C3C3B] to-gray-800 text-white rounded-lg p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
@@ -322,6 +330,7 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       )}
-    </div>
+      </div>
+    </>
   );
 }
