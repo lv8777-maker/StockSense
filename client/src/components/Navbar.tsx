@@ -19,6 +19,7 @@ export default function Navbar() {
   const navigationItems = [
     { path: "/dashboard", label: "Dashboard" },
     { path: "/rewards", label: "Rewards Catalog" },
+    { path: "/submit-purchase", label: "Submit Receipt" },
     { path: "/campaigns", label: "Campaigns" },
     { path: "/notifications", label: "Notifications" },
     { path: "/history", label: "Purchase History" },
