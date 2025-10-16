@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/table";
 import { Download, ShoppingCart, DollarSign, Coins } from "lucide-react";
 import type { Transaction } from "@shared/schema";
-import Navigation from "@/components/Navigation";
+import Navbar from "@/components/Navbar";
 
 export default function History() {
   const [filterPeriod, setFilterPeriod] = useState("all");
@@ -63,7 +63,7 @@ export default function History() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navigation showBackButton={true} />
+      <Navbar />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex justify-between items-center mb-8">
         <div>

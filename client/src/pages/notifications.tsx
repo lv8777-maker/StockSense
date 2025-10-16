@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
+import Navbar from "@/components/Navbar";
 
 const notificationFormSchema = z.object({
   type: z.enum(["push", "sms", "email", "in_app"]),
@@ -142,14 +143,19 @@ export default function NotificationsPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
-        <div className="space-y-4">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
-          ))}
+      <>
+        <Navbar />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="space-y-6">
+            <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+              ))}
+            </div>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
@@ -157,9 +163,12 @@ export default function NotificationsPage() {
   const readNotifications = notifications.filter((n: Notification) => n.readAt);
 
   return (
-    <div className="space-y-6" data-testid="notifications-page">
-      {/* Header */}
-      <div className="flex justify-between items-center">
+    <>
+      <Navbar />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="space-y-6" data-testid="notifications-page">
+          {/* Header */}
+          <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Notification Center</h1>
           <p className="text-gray-600 dark:text-gray-300">Manage and send notifications across multiple channels</p>
@@ -592,6 +601,8 @@ export default function NotificationsPage() {
             ))}
         </TabsContent>
       </Tabs>
-    </div>
+        </div>
+      </div>
+    </>
   );
 }
