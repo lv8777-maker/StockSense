@@ -103,9 +103,8 @@ export default function Rewards() {
                 <Button
                   key={category.value}
                   variant={selectedCategory === category.value ? "default" : "outline"}
-                  size="sm"
                   onClick={() => setSelectedCategory(category.value)}
-                  className={`text-xs sm:text-sm h-8 px-3 ${selectedCategory === category.value ? "bg-[#FDC800] hover:bg-[#FDC800]/90 text-[#3C3C3B]" : ""}`}
+                  className={`text-sm min-h-[44px] px-4 ${selectedCategory === category.value ? "bg-[#FDC800] hover:bg-[#FDC800]/90 text-[#3C3C3B]" : ""}`}
                   data-testid={`button-filter-${category.value}`}
                 >
                   {category.label}
