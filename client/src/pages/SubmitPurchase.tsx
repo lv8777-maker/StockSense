@@ -195,7 +195,7 @@ export default function SubmitPurchase() {
             <Button
               onClick={handleUpload}
               disabled={!selectedFile || uploadMutation.isPending}
-              className="w-full bg-[#FDC800] hover:bg-[#FDC800]/90 text-[#3C3C3B]"
+              className="w-full min-h-[48px] bg-[#FDC800] hover:bg-[#FDC800]/90 text-[#3C3C3B]"
               data-testid="button-upload-receipt"
             >
               {uploadMutation.isPending ? (
@@ -316,7 +316,7 @@ export default function SubmitPurchase() {
                       )}
                       <Button
                         variant="outline"
-                        size="sm"
+                        className="min-h-[44px] px-4"
                         onClick={() => window.open(receipt.fileUrl, '_blank')}
                         data-testid={`button-view-receipt-${receipt.id}`}
                       >

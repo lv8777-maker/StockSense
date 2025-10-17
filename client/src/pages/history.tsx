@@ -64,15 +64,15 @@ export default function History() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="flex justify-between items-center mb-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 sm:mb-8 space-y-4 sm:space-y-0">
         <div>
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">Transaction History</h2>
-          <p className="text-gray-600">Track your Maverick purchases and earned points</p>
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Transaction History</h2>
+          <p className="text-gray-600 text-sm sm:text-base">Track your Maverick purchases and earned points</p>
         </div>
-        <div className="flex space-x-4">
+        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
           <Select value={filterPeriod} onValueChange={setFilterPeriod} data-testid="select-filter-period">
-            <SelectTrigger className="w-40">
+            <SelectTrigger className="w-full sm:w-40">
               <SelectValue placeholder="Filter period" />
             </SelectTrigger>
             <SelectContent>
@@ -82,7 +82,7 @@ export default function History() {
               <SelectItem value="year">This Year</SelectItem>
             </SelectContent>
           </Select>
-          <Button onClick={handleDownload} data-testid="button-download-history">
+          <Button onClick={handleDownload} className="w-full sm:w-auto min-h-[44px]" data-testid="button-download-history">
             <Download className="mr-2 h-4 w-4" />
             Download
           </Button>
@@ -161,49 +161,95 @@ export default function History() {
               </p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Transaction</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Points</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {transactions.map((transaction: any) => (
-                    <TableRow key={transaction.id} data-testid={`row-transaction-${transaction.id}`}>
-                      <TableCell className="whitespace-nowrap">
-                        {new Date(transaction.createdAt).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium text-gray-900" data-testid={`text-transaction-description-${transaction.id}`}>
-                            {transaction.description}
-                          </div>
-                          {transaction.orderId && (
-                            <div className="text-sm text-gray-500">
-                              Order #{transaction.orderId}
-                            </div>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell data-testid={`text-transaction-amount-${transaction.id}`}>
-                        {transaction.amount ? `R${transaction.amount}` : 'R0.00'}
-                      </TableCell>
-                      <TableCell data-testid={`text-transaction-points-${transaction.id}`}>
-                        {getPointsDisplay(transaction)}
-                      </TableCell>
-                      <TableCell>
-                        {getStatusBadge(transaction.type, transaction.status)}
-                      </TableCell>
+            <>
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Transaction</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Points</TableHead>
+                      <TableHead>Status</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {transactions.map((transaction: any) => (
+                      <TableRow key={transaction.id} data-testid={`row-transaction-${transaction.id}`}>
+                        <TableCell className="whitespace-nowrap">
+                          {new Date(transaction.createdAt).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <div className="font-medium text-gray-900" data-testid={`text-transaction-description-${transaction.id}`}>
+                              {transaction.description}
+                            </div>
+                            {transaction.orderId && (
+                              <div className="text-sm text-gray-500">
+                                Order #{transaction.orderId}
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell data-testid={`text-transaction-amount-${transaction.id}`}>
+                          {transaction.amount ? `R${transaction.amount}` : 'R0.00'}
+                        </TableCell>
+                        <TableCell data-testid={`text-transaction-points-${transaction.id}`}>
+                          {getPointsDisplay(transaction)}
+                        </TableCell>
+                        <TableCell>
+                          {getStatusBadge(transaction.type, transaction.status)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile Card View */}
+              <div className="md:hidden space-y-3">
+                {transactions.map((transaction: any) => (
+                  <div
+                    key={transaction.id}
+                    className="bg-white border rounded-lg p-4 space-y-3"
+                    data-testid={`card-transaction-${transaction.id}`}
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <h3 className="font-medium text-gray-900 mb-1" data-testid={`text-transaction-description-${transaction.id}`}>
+                          {transaction.description}
+                        </h3>
+                        {transaction.orderId && (
+                          <p className="text-sm text-gray-500">Order #{transaction.orderId}</p>
+                        )}
+                      </div>
+                      {getStatusBadge(transaction.type, transaction.status)}
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <p className="text-gray-500 text-xs mb-1">Date</p>
+                        <p className="font-medium">{new Date(transaction.createdAt).toLocaleDateString()}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500 text-xs mb-1">Amount</p>
+                        <p className="font-medium" data-testid={`text-transaction-amount-${transaction.id}`}>
+                          {transaction.amount ? `R${transaction.amount}` : 'R0.00'}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="pt-2 border-t">
+                      <p className="text-gray-500 text-xs mb-1">Points</p>
+                      <div data-testid={`text-transaction-points-${transaction.id}`}>
+                        {getPointsDisplay(transaction)}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
