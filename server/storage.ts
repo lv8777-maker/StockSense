@@ -153,7 +153,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUserWithPhone(userData: { phoneNumber: string; firstName?: string; lastName?: string; currentPlan?: string }): Promise<User> {
-    // Map plan to tier and get initial points (same logic as email)
+    // Map plan to tier (points will be awarded via transaction)
     const tierMapping: Record<string, { tier: string; points: number }> = {
       'Essential': { tier: 'starter', points: 100 },
       'Core': { tier: 'starter', points: 100 },
@@ -178,7 +178,7 @@ export class DatabaseStorage implements IStorage {
         firstName: userData.firstName || '',
         lastName: userData.lastName || '',
         currentPlan: userData.currentPlan,
-        totalPoints: planInfo.points,
+        totalPoints: 0, // Start with 0 points - welcome bonus added via transaction
         membershipTier: planInfo.tier,
         isActive: true,
         emailNotifications: false,
@@ -201,7 +201,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUserWithEmail(userData: { email: string; password: string; firstName: string; lastName: string; currentPlan: string }): Promise<User> {
-    // Map plan to tier and get points
+    // Map plan to tier (points will be awarded via transaction)
     const tierMapping: Record<string, { tier: string; points: number }> = {
       'Essential': { tier: 'starter', points: 100 },
       'Core': { tier: 'starter', points: 100 },
@@ -221,11 +221,11 @@ export class DatabaseStorage implements IStorage {
       .insert(users)
       .values({
         email: userData.email,
-        password: userData.password, // In production, this should be hashed
+        password: userData.password,
         firstName: userData.firstName,
         lastName: userData.lastName,
         currentPlan: userData.currentPlan,
-        totalPoints: planInfo.points,
+        totalPoints: 0, // Start with 0 points - welcome bonus added via transaction
         membershipTier: planInfo.tier,
         isActive: true,
         emailNotifications: true,
