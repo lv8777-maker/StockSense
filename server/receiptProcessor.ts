@@ -29,9 +29,7 @@ const planToPoints: Record<string, number> = {
 export async function processReceiptImage(imagePath: string): Promise<ProcessedReceipt> {
   try {
     // Perform OCR on the receipt image
-    const { data: { text } } = await Tesseract.recognize(imagePath, 'eng', {
-      logger: m => console.log(m) // Optional: log progress
-    });
+    const { data: { text } } = await Tesseract.recognize(imagePath, 'eng');
 
     const ocrText = text.toLowerCase();
     
