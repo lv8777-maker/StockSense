@@ -29,7 +29,23 @@ export async function setupEmailAuth(app: Express) {
       // Hash password using bcrypt (10 salt rounds for security)
       const hashedPassword = await bcrypt.hash(password, 10);
 
-      // Create new user with hashed password
+      // Plan to points mapping for welcome bonus
+      const planPointsMapping: Record<string, number> = {
+        'Essential': 100,
+        'Core': 100,
+        'Plus': 200,
+        'Prime': 200,
+        'Deluxe': 300,
+        'Elite': 300,
+        'Bronze': 500,
+        'Silver': 500,
+        'Gold': 500,
+        'Platinum': 500,
+      };
+      
+      const welcomePoints = planPointsMapping[currentPlan] || 100;
+
+      // Create new user with hashed password (starts with 0 points)
       const user = await storage.createUserWithEmail({
         firstName,
         lastName,
@@ -38,39 +54,42 @@ export async function setupEmailAuth(app: Express) {
         currentPlan
       });
 
-      // Create session
-      (req as any).session.user = {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        currentPlan: user.currentPlan,
-        membershipTier: user.membershipTier,
-        totalPoints: user.totalPoints,
-      };
-
-      // Create welcome transaction for plan selection
+      // Award welcome bonus via transaction (this will update user's totalPoints)
       await storage.createTransaction({
         userId: user.id,
         type: 'earning',
         description: `Welcome to Maverick Loyalty! Plan selection bonus for ${currentPlan}`,
         amount: "0.00",
-        pointsEarned: user.totalPoints || 0,
+        pointsEarned: welcomePoints,
         pointsSpent: 0,
         status: 'completed',
         orderId: `WELCOME-${user.id.substring(0, 8)}`,
       });
 
+      // Fetch updated user to get correct totalPoints after transaction
+      const updatedUser = await storage.getUserByEmail(email);
+
+      // Create session with updated points
+      (req as any).session.user = {
+        id: updatedUser!.id,
+        email: updatedUser!.email,
+        firstName: updatedUser!.firstName,
+        lastName: updatedUser!.lastName,
+        currentPlan: updatedUser!.currentPlan,
+        membershipTier: updatedUser!.membershipTier,
+        totalPoints: updatedUser!.totalPoints,
+      };
+
       res.json({ 
         success: true, 
         user: {
-          id: user.id,
-          email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          currentPlan: user.currentPlan,
-          membershipTier: user.membershipTier,
-          totalPoints: user.totalPoints,
+          id: updatedUser!.id,
+          email: updatedUser!.email,
+          firstName: updatedUser!.firstName,
+          lastName: updatedUser!.lastName,
+          currentPlan: updatedUser!.currentPlan,
+          membershipTier: updatedUser!.membershipTier,
+          totalPoints: updatedUser!.totalPoints,
         }
       });
     } catch (error) {

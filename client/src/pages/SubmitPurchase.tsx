@@ -48,11 +48,19 @@ export default function SubmitPurchase() {
       const formData = new FormData();
       formData.append('receipt', file);
       
-      return await apiRequest("/api/receipts/upload", {
+      // Use fetch directly for file upload (FormData requires browser to set Content-Type with boundary)
+      const response = await fetch("/api/receipts/upload", {
         method: "POST",
         body: formData,
-        headers: {}, // Let browser set Content-Type with boundary
+        credentials: "include",
       });
+      
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ message: "Upload failed" }));
+        throw new Error(error.message || `HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      return await response.json();
     },
     onSuccess: (data: any) => {
       toast({
