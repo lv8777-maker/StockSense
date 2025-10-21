@@ -36,7 +36,7 @@ export const users = pgTable("users", {
   dateOfBirth: timestamp("date_of_birth"),
   gender: varchar("gender"),
   location: varchar("location"),
-  currentPlan: varchar("current_plan"), // Essential, Core, Plus, Prime, Deluxe, Elite, Bronze, Silver, Gold, Platinum
+  currentPlan: varchar("current_plan"), // Essential, Core, Plus, Prime, Deluxe, Elite (maps to Maverick tiers)
   totalPoints: integer("total_points").default(0),
   memberSince: timestamp("member_since").defaultNow(),
   membershipTier: varchar("membership_tier").default('starter'), // starter, explorer, champion, elite
@@ -254,7 +254,7 @@ export const loyaltyAccounts = pgTable("loyalty_accounts", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id),
   accountNumber: varchar("account_number").unique().notNull(), // MAV-XXXXXXXXXXXX
-  currentTier: varchar("current_tier").default('bronze'), // bronze, silver, gold, platinum
+  currentTier: varchar("current_tier").default('starter'), // starter, explorer, champion, elite (Maverick tiers)
   tierProgress: decimal("tier_progress", { precision: 5, scale: 2 }).default('0.00'), // percentage to next tier
   lifetimePoints: integer("lifetime_points").default(0),
   availablePoints: integer("available_points").default(0),
