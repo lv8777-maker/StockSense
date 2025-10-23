@@ -491,16 +491,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Insufficient points" });
       }
 
+      console.log(`[REDEMPTION] User ${userId} redeeming ${redemptionData.pointsSpent} points`);
+      console.log(`[REDEMPTION] User points before: ${user.totalPoints}`);
+      
       const redemption = await storage.createRedemption(redemptionData);
+      console.log(`[REDEMPTION] Redemption created: ${redemption.id}`);
       
       // Create transaction for points spent (this automatically deducts points via createTransaction)
-      await storage.createTransaction({
+      const transaction = await storage.createTransaction({
         userId,
         type: 'redemption',
         pointsSpent: redemptionData.pointsSpent,
         description: `Redeemed reward: ${redemption.id}`,
         status: 'completed',
       });
+      console.log(`[REDEMPTION] Transaction created: ${transaction.id}`);
+      
+      const userAfter = await storage.getUser(userId);
+      console.log(`[REDEMPTION] User points after: ${userAfter?.totalPoints}`);
 
       res.json(redemption);
     } catch (error) {

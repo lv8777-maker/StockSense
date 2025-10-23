@@ -41,12 +41,20 @@ export default function Rewards() {
       
       return await response.json();
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast({
         title: "🎉 Reward Claimed Successfully!",
         description: "Your reward has been processed. Check your email for confirmation details.",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      // Force immediate refetch of user data and dashboard stats
+      try {
+        await Promise.all([
+          queryClient.refetchQueries({ queryKey: ["/api/auth/user"] }),
+          queryClient.refetchQueries({ queryKey: ["/api/dashboard/stats"] }),
+        ]);
+      } catch (error) {
+        console.error("Error refreshing user data:", error);
+      }
       queryClient.invalidateQueries({ queryKey: ["/api/redemptions"] });
       setShowClaimDialog(false);
       setSelectedReward(null);
