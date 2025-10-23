@@ -111,6 +111,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       delete updates.createdAt;
       delete updates.updatedAt;
       
+      // Convert date fields to proper Date objects or null
+      if (updates.dateOfBirth !== undefined) {
+        updates.dateOfBirth = updates.dateOfBirth && updates.dateOfBirth.trim() !== '' 
+          ? new Date(updates.dateOfBirth) 
+          : null;
+      }
+      
       const user = await storage.updateUserProfile(userId, updates);
       res.json(user);
     } catch (error) {
@@ -486,7 +493,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const redemption = await storage.createRedemption(redemptionData);
       
-      // Create transaction for points spent
+      // Create transaction for points spent (this automatically deducts points via createTransaction)
       await storage.createTransaction({
         userId,
         type: 'redemption',
@@ -599,11 +606,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/campaigns', isAuthenticated, async (req, res) => {
     try {
-      const campaignData = insertCampaignSchema.parse(req.body);
-      const campaign = await campaignService.createCampaign({
-        ...campaignData,
-        createdBy: req.user?.claims?.sub || 'system',
-      });
+      const data = req.body;
+      
+      // Convert date strings to Date objects
+      if (data.startDate) {
+        data.startDate = new Date(data.startDate);
+      }
+      if (data.endDate) {
+        data.endDate = new Date(data.endDate);
+      }
+      
+      // Add createdBy from authenticated user
+      data.createdBy = req.user?.claims?.sub || 'system';
+      
+      const campaignData = insertCampaignSchema.parse(data);
+      const campaign = await campaignService.createCampaign(campaignData);
       res.status(201).json(campaign);
     } catch (error) {
       console.error("Error creating campaign:", error);
