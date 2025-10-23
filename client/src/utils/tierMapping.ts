@@ -15,7 +15,7 @@ export const planToTierMapping: Record<string, TierInfo> = {
     tier: 'starter',
     displayName: 'Maverick Starter',
     points: 100,
-    benefits: ['Basic rewards access', 'Monthly newsletters', 'Essential support'],
+    benefits: ['Basic rewards access', 'Essential support'],
     color: '#8B4513',
     icon: 'star'
   },
@@ -23,7 +23,7 @@ export const planToTierMapping: Record<string, TierInfo> = {
     tier: 'starter',
     displayName: 'Maverick Starter',
     points: 100,
-    benefits: ['Basic rewards access', 'Monthly newsletters', 'Essential support'],
+    benefits: ['Basic rewards access', 'Essential support'],
     color: '#8B4513',
     icon: 'star'
   },
@@ -114,7 +114,7 @@ export const tierColors = {
 };
 
 export const tierBenefits = {
-  starter: ['Basic rewards access', 'Monthly newsletters', 'Essential support'],
+  starter: ['Basic rewards access', 'Essential support'],
   explorer: ['Enhanced rewards', 'Priority customer service', 'Exclusive monthly offers', 'Data rollover'],
   champion: ['Premium rewards catalog', 'VIP customer service', 'Free device upgrades', 'International roaming discounts'],
   elite: ['Platinum-level rewards', 'Personal account manager', 'Concierge services', 'Exclusive event access']
