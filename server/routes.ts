@@ -5,7 +5,6 @@ import { storage } from "./storage";
 import { setupPhoneAuth, isAuthenticated } from "./phoneAuth";
 import { setupEmailAuth, isEmailAuthenticated } from "./emailAuth";
 import { uploadLimiter } from "./rateLimiter";
-import { notificationService } from "./services/NotificationService";
 import { campaignService } from "./services/CampaignService";
 import { pointsEngineService } from "./services/PointsEngineService";
 import { 
@@ -13,7 +12,6 @@ import {
   insertTransactionSchema, 
   insertRedemptionSchema,
   insertCampaignSchema,
-  insertNotificationSchema,
   insertEarningRuleSchema 
 } from "@shared/schema";
 import { z } from "zod";
@@ -645,48 +643,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Notification System Routes
-  app.get('/api/notifications', isAuthenticated, async (req, res) => {
-    try {
-      const userId = req.user?.claims?.sub;
-      const limit = parseInt(req.query.limit as string) || 20;
-      
-      const notifications = await storage.getNotifications(userId, limit);
-      res.json(notifications);
-    } catch (error) {
-      console.error("Error fetching notifications:", error);
-      res.status(500).json({ message: "Failed to fetch notifications" });
-    }
-  });
-
-  app.put('/api/notifications/:id/read', isAuthenticated, async (req, res) => {
-    try {
-      const { id } = req.params;
-      const userId = req.user?.claims?.sub;
-      
-      const success = await storage.markNotificationAsRead(id, userId);
-      
-      if (!success) {
-        return res.status(404).json({ message: "Notification not found" });
-      }
-      
-      res.json({ message: "Notification marked as read" });
-    } catch (error) {
-      console.error("Error marking notification as read:", error);
-      res.status(500).json({ message: "Failed to mark notification as read" });
-    }
-  });
-
-  app.post('/api/notifications', isAuthenticated, async (req, res) => {
-    try {
-      const notificationData = insertNotificationSchema.parse(req.body);
-      const notificationId = await notificationService.createNotification(notificationData);
-      res.status(201).json({ id: notificationId });
-    } catch (error) {
-      console.error("Error creating notification:", error);
-      res.status(500).json({ message: "Failed to create notification" });
-    }
-  });
 
   // Enhanced Points Engine Routes
   app.post('/api/points/calculate', isAuthenticated, async (req, res) => {

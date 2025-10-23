@@ -24,7 +24,6 @@ export default function Navbar() {
     { path: "/rewards", label: "Rewards Catalog" },
     { path: "/submit-purchase", label: "Submit Receipt" },
     { path: "/campaigns", label: "Campaigns" },
-    { path: "/notifications", label: "Notifications" },
     { path: "/history", label: "Purchase History" },
     { path: "/profile", label: "Profile" },
     { path: "/admin", label: "Admin Panel" },

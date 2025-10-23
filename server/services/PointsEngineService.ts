@@ -9,7 +9,6 @@ import {
   type User 
 } from '@shared/schema';
 import { eq, and, gte, lte, sum, sql } from 'drizzle-orm';
-import { notificationService } from './NotificationService';
 import { campaignService } from './CampaignService';
 
 export interface PointsCalculation {
@@ -241,14 +240,7 @@ export class PointsEngineService {
     // Check for tier upgrades
     await this.checkTierUpgrade(userId);
 
-    // Send notification
-    if (pointsCalc.totalPoints > 0) {
-      await notificationService.notifyPointsEarned(
-        userId,
-        pointsCalc.totalPoints,
-        transactionData.description
-      );
-    }
+    // Notification system removed - points earned will be tracked in transaction history
 
     return transaction.id;
   }
@@ -334,15 +326,8 @@ export class PointsEngineService {
         })
         .where(eq(loyaltyAccounts.userId, userId));
 
-      // Send tier upgrade notification
-      await notificationService.createNotification({
-        userId,
-        type: 'in_app',
-        category: 'system',
-        title: 'Tier Upgrade!',
-        message: `Congratulations! You've been upgraded to ${newTier.charAt(0).toUpperCase() + newTier.slice(1)} tier!`,
-        data: { previousTier: currentTier, newTier, points: currentPoints },
-      });
+      // Notification system removed - tier upgrade visible in user profile
+      console.log(`User ${userId} upgraded from ${currentTier} to ${newTier}`);
     }
   }
 

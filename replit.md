@@ -8,6 +8,16 @@ Preferred communication style: Simple, everyday language.
 
 # Recent Project Completion
 
+## Notification System Removal (October 2025)
+- **COMPLETED**: Removed notification centre and all related infrastructure at user request
+- **Removed Files**: NotificationService.ts, notifications.tsx page
+- **Removed Database**: notifications table schema and relations
+- **Removed API Routes**: GET/POST /api/notifications, PUT /api/notifications/:id/read
+- **Removed Frontend**: Notification navigation link from Navbar
+- **Updated Services**: CampaignService and PointsEngineService no longer send notifications
+- **Simplified Navigation**: Cleaner menu focusing on core features (Dashboard, Rewards, Campaigns, History, Profile)
+- **Architecture**: Points tracking and tier upgrades visible through transaction history and user profile
+
 ## Mobile Optimization & Touch Target Enhancement (October 2025)
 - **COMPLETED**: Comprehensive mobile optimization ensuring perfect UX on all devices
 - **Responsive Navbar**: Hamburger menu with Sheet drawer for mobile devices
@@ -30,7 +40,7 @@ Preferred communication style: Simple, everyday language.
 - **COMPLETED**: Implemented consistent navigation component across all authenticated pages
 - **Navbar Component**: Created unified Navbar replacing old Navigation component with Maverick branding
 - **Design**: Dark background (#3C3C3B), Maverick yellow accents (#FDC800), user info display, points total
-- **Navigation**: Links to Dashboard, Rewards, Submit Receipt, History, Notifications, Profile pages
+- **Navigation**: Links to Dashboard, Rewards, Submit Receipt, History, Campaigns, Profile pages
 - **Logout Functionality**: Added POST /api/auth/logout endpoint, session destruction, cookie clearing
 - **Mobile Responsive**: Hamburger menu for mobile devices with full navigation drawer
 - **Bug Fixes**: Fixed SelectItem empty value error on profile page, implemented proper logout flow
@@ -75,7 +85,7 @@ Preferred communication style: Simple, everyday language.
 ## Enterprise-Grade Foundation (January 2025)
 - Successfully expanded to enterprise-grade Maverick Telecom Loyalty App (MAV-LOY-2025)
 - Implemented comprehensive database schema with 8 new enterprise tables
-- Created three core enterprise services: NotificationService, CampaignService, PointsEngineService
+- Created core enterprise services: CampaignService, PointsEngineService
 - Enhanced storage layer with full enterprise feature support
 - Maintained exact Maverick brand colors: #3C3C3B (Dark Gray), #FDC800 (Bright Yellow), #A7A9AC (Light Gray)
 - Foundation ready for 5-week enterprise delivery timeline
@@ -85,7 +95,7 @@ Preferred communication style: Simple, everyday language.
 - **Transaction Simulation**: Live testing system for telecom purchases with real-time point calculation
 - **Authentication Options**: Both phone (SA format) and email/password with plan selection
 - **Tier Management**: Complete 4-tier system with upgrade functionality and benefit tracking
-- **Next Phase**: Advanced personalization & engagement features (campaign management, intelligent notifications)
+- **Next Phase**: Advanced personalization & engagement features (campaign management)
 
 # System Architecture
 
