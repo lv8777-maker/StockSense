@@ -12,7 +12,6 @@ import History from "@/pages/history";
 import Profile from "@/pages/profile";
 import Admin from "@/pages/admin";
 import Campaigns from "@/pages/campaigns";
-import Notifications from "@/pages/notifications";
 import SubmitPurchase from "@/pages/SubmitPurchase";
 import NotFound from "@/pages/not-found";
 import EmailRegistration from "@/components/EmailRegistration";
@@ -36,7 +35,6 @@ function Router() {
           <Route path="/history" component={History} />
           <Route path="/profile" component={Profile} />
           <Route path="/campaigns" component={Campaigns} />
-          <Route path="/notifications" component={Notifications} />
           <Route path="/admin" component={Admin} />
         </>
       )}

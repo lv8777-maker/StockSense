@@ -7,7 +7,6 @@ import {
   socialConnections,
   receiptUploads,
   campaigns,
-  notifications,
   loyaltyAccounts,
   earningRules,
   adminUsers,
@@ -29,8 +28,6 @@ import {
   type InsertReceiptUpload,
   type Campaign,
   type InsertCampaign,
-  type Notification,
-  type InsertNotification,
   type LoyaltyAccount,
   type InsertLoyaltyAccount,
   type EarningRule,
@@ -105,11 +102,6 @@ export interface IStorage {
   getCampaign(id: string): Promise<Campaign | undefined>;
   createCampaign(campaign: InsertCampaign): Promise<Campaign>;
   updateCampaign(id: string, updates: Partial<Campaign>): Promise<Campaign | undefined>;
-
-  // Notifications
-  getNotifications(userId: string, limit?: number): Promise<Notification[]>;
-  createNotification(notification: InsertNotification): Promise<Notification>;
-  markNotificationAsRead(notificationId: string, userId: string): Promise<boolean>;
 
   // Loyalty Accounts
   getLoyaltyAccount(userId: string): Promise<LoyaltyAccount | undefined>;
@@ -635,19 +627,6 @@ export class DatabaseStorage implements IStorage {
     return updatedCampaign;
   }
 
-  async getNotifications(userId: string, limit = 20): Promise<Notification[]> {
-    return await db.select().from(notifications).where(eq(notifications.userId, userId)).orderBy(desc(notifications.createdAt)).limit(limit);
-  }
-
-  async createNotification(notification: InsertNotification): Promise<Notification> {
-    const [newNotification] = await db.insert(notifications).values(notification).returning();
-    return newNotification;
-  }
-
-  async markNotificationAsRead(notificationId: string, userId: string): Promise<boolean> {
-    const result = await db.update(notifications).set({ readAt: new Date() }).where(and(eq(notifications.id, notificationId), eq(notifications.userId, userId)));
-    return (result.rowCount ?? 0) > 0;
-  }
 
   async getLoyaltyAccount(userId: string): Promise<LoyaltyAccount | undefined> {
     const [account] = await db.select().from(loyaltyAccounts).where(eq(loyaltyAccounts.userId, userId));

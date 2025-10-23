@@ -286,25 +286,6 @@ export const campaigns = pgTable("campaigns", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Notification system
-export const notifications = pgTable("notifications", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").references(() => users.id),
-  type: varchar("type").notNull(), // push, email, sms, in_app
-  category: varchar("category").notNull(), // points, rewards, promotions, system
-  title: varchar("title").notNull(),
-  message: text("message").notNull(),
-  data: jsonb("data"), // additional payload
-  status: varchar("status").default('pending'), // pending, sent, delivered, failed
-  channel: varchar("channel"), // email address, phone number, device token
-  scheduledFor: timestamp("scheduled_for"),
-  sentAt: timestamp("sent_at"),
-  deliveredAt: timestamp("delivered_at"),
-  readAt: timestamp("read_at"),
-  errorMessage: text("error_message"),
-  retryCount: integer("retry_count").default(0),
-  createdAt: timestamp("created_at").defaultNow(),
-});
 
 // Admin users for the system
 export const adminUsers = pgTable("admin_users", {
@@ -392,16 +373,6 @@ export const loyaltyAccountsRelations = relations(loyaltyAccounts, ({ one, many 
   }),
 }));
 
-export const campaignsRelations = relations(campaigns, ({ many }) => ({
-  notifications: many(notifications),
-}));
-
-export const notificationsRelations = relations(notifications, ({ one }) => ({
-  user: one(users, {
-    fields: [notifications.userId],
-    references: [users.id],
-  }),
-}));
 
 export const userSessionsRelations = relations(userSessions, ({ one }) => ({
   user: one(users, {
@@ -416,9 +387,6 @@ export type InsertLoyaltyAccount = typeof loyaltyAccounts.$inferInsert;
 
 export type Campaign = typeof campaigns.$inferSelect;
 export type InsertCampaign = typeof campaigns.$inferInsert;
-
-export type Notification = typeof notifications.$inferSelect;
-export type InsertNotification = typeof notifications.$inferInsert;
 
 export type AdminUser = typeof adminUsers.$inferSelect;
 export type InsertAdminUser = typeof adminUsers.$inferInsert;
@@ -443,13 +411,6 @@ export const insertCampaignSchema = createInsertSchema(campaigns).omit({
   currentParticipants: true,
 });
 
-export const insertNotificationSchema = createInsertSchema(notifications).omit({
-  id: true,
-  createdAt: true,
-  sentAt: true,
-  deliveredAt: true,
-  readAt: true,
-});
 
 export const insertEarningRuleSchema = createInsertSchema(earningRules).omit({
   id: true,

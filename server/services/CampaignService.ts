@@ -1,7 +1,6 @@
 import { db } from '../db';
-import { campaigns, users, notifications, type InsertCampaign, type Campaign } from '@shared/schema';
+import { campaigns, users, type InsertCampaign, type Campaign } from '@shared/schema';
 import { eq, and, gte, lte, sql } from 'drizzle-orm';
-import { notificationService } from './NotificationService';
 
 export interface CampaignRules {
   pointsMultiplier?: number;
@@ -237,25 +236,8 @@ export class CampaignService {
 
   // Notify eligible users about campaign
   private async notifyEligibleUsers(campaign: Campaign): Promise<void> {
-    const targetAudience = campaign.targetAudience as CampaignTargetAudience;
-    
-    // Build base query for eligible users
-    const eligibleUsers = await db
-      .select()
-      .from(users)
-      .where(eq(users.isActive, true));
-
-    // Send notifications to eligible users
-    for (const user of eligibleUsers) {
-      if (user.marketingMessages) {
-        await notificationService.sendPromotion(
-          user.id,
-          campaign.name,
-          campaign.description || 'New campaign available!',
-          campaign.id
-        );
-      }
-    }
+    // Notification system removed - campaigns will notify users through other channels
+    console.log(`Campaign ${campaign.name} activated - notification skipped`);
   }
 
   // End campaign
