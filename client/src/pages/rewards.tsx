@@ -27,10 +27,19 @@ export default function Rewards() {
 
   const redeemMutation = useMutation({
     mutationFn: async (rewardData: { rewardId: string; pointsSpent: number }) => {
-      return await apiRequest("/api/redemptions", {
+      const response = await fetch("/api/redemptions", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(rewardData),
+        credentials: "include",
       });
+      
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ message: "Redemption failed" }));
+        throw new Error(error.message || `HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      return await response.json();
     },
     onSuccess: () => {
       toast({

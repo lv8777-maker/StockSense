@@ -67,10 +67,7 @@ export default function CampaignsPage() {
 
   const createCampaignMutation = useMutation({
     mutationFn: async (data: CampaignFormData) => {
-      return await apiRequest("/api/campaigns", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
+      return await apiRequest("POST", "/api/campaigns", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/campaigns"] });
@@ -91,9 +88,7 @@ export default function CampaignsPage() {
 
   const activateCampaignMutation = useMutation({
     mutationFn: async (campaignId: string) => {
-      return await apiRequest(`/api/campaigns/${campaignId}/activate`, {
-        method: "PUT",
-      });
+      return await apiRequest("PUT", `/api/campaigns/${campaignId}/activate`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/campaigns"] });
