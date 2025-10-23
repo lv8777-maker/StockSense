@@ -5,11 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { availablePlans, getTierFromPlan } from "@/utils/tierMapping";
-import { Mail, Lock, User, Smartphone, Crown } from "lucide-react";
+import { Mail, User, Crown } from "lucide-react";
 
 export default function EmailRegistration() {
   const [formData, setFormData] = useState({
@@ -17,8 +15,7 @@ export default function EmailRegistration() {
     lastName: "",
     email: "",
     password: "",
-    confirmPassword: "",
-    currentPlan: undefined
+    confirmPassword: ""
   });
   const [isLogin, setIsLogin] = useState(true);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -36,7 +33,7 @@ export default function EmailRegistration() {
         title: isLogin ? "Welcome back!" : "Account created successfully!",
         description: isLogin 
           ? "You've been logged in successfully." 
-          : `Welcome to Maverick Loyalty! You've been assigned to ${getTierFromPlan(formData.currentPlan).displayName} tier and earned ${getTierFromPlan(formData.currentPlan).points} points!`,
+          : "Welcome to Maverick Loyalty! Your account has been created successfully.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       
@@ -72,7 +69,6 @@ export default function EmailRegistration() {
     if (!isLogin) {
       if (!formData.firstName) newErrors.firstName = "First name is required";
       if (!formData.lastName) newErrors.lastName = "Last name is required";
-      if (!formData.currentPlan) newErrors.currentPlan = "Please select a plan";
       
       if (formData.password !== formData.confirmPassword) {
         newErrors.confirmPassword = "Passwords do not match";
@@ -93,14 +89,11 @@ export default function EmailRegistration() {
           firstName: formData.firstName,
           lastName: formData.lastName,
           email: formData.email,
-          password: formData.password,
-          currentPlan: formData.currentPlan
+          password: formData.password
         };
 
     authMutation.mutate(submitData);
   };
-
-  const selectedPlanInfo = formData.currentPlan ? getTierFromPlan(formData.currentPlan) : null;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
@@ -198,59 +191,23 @@ export default function EmailRegistration() {
             </div>
 
             {!isLogin && (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword" className="text-sm font-medium">
-                    Confirm Password *
-                  </Label>
-                  <Input
-                    id="confirmPassword"
-                    type="password"
-                    value={formData.confirmPassword}
-                    onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
-                    className={errors.confirmPassword ? "border-red-500" : ""}
-                    placeholder="Confirm your password"
-                    data-testid="input-confirm-password"
-                  />
-                  {errors.confirmPassword && (
-                    <p className="text-red-500 text-xs">{errors.confirmPassword}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="currentPlan" className="text-sm font-medium">
-                    Select Your Current Plan *
-                  </Label>
-                  <Select value={formData.currentPlan || ""} onValueChange={(value) => setFormData({...formData, currentPlan: value})}>
-                    <SelectTrigger className={errors.currentPlan ? "border-red-500" : ""} data-testid="select-plan">
-                      <SelectValue placeholder="Choose your plan" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availablePlans.map((plan) => (
-                        <SelectItem key={plan.value} value={plan.value}>
-                          {plan.label} - {plan.tier}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {errors.currentPlan && (
-                    <p className="text-red-500 text-xs">{errors.currentPlan}</p>
-                  )}
-                </div>
-
-                {/* Tier Preview */}
-                {selectedPlanInfo && (
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-medium text-[#3C3C3B]">{selectedPlanInfo.displayName}</span>
-                      <span className="text-sm text-[#FDC800] font-semibold">+{selectedPlanInfo.points} points</span>
-                    </div>
-                    <p className="text-xs text-gray-600">
-                      You'll be assigned to this tier and receive {selectedPlanInfo.points} loyalty points to start!
-                    </p>
-                  </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword" className="text-sm font-medium">
+                  Confirm Password *
+                </Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  value={formData.confirmPassword}
+                  onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
+                  className={errors.confirmPassword ? "border-red-500" : ""}
+                  placeholder="Confirm your password"
+                  data-testid="input-confirm-password"
+                />
+                {errors.confirmPassword && (
+                  <p className="text-red-500 text-xs">{errors.confirmPassword}</p>
                 )}
-              </>
+              </div>
             )}
 
             <Button

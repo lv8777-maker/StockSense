@@ -53,7 +53,7 @@ export interface IStorage {
   
   // Email authentication methods
   getUserByEmail(email: string): Promise<User | undefined>;
-  createUserWithEmail(userData: { email: string; password: string; firstName: string; lastName: string; currentPlan: string }): Promise<User>;
+  createUserWithEmail(userData: { email: string; password: string; firstName: string; lastName: string; currentPlan?: string }): Promise<User>;
   validateUserPassword(email: string, password: string): Promise<User | null>;
   
   // Plan upgrade methods
@@ -192,22 +192,9 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async createUserWithEmail(userData: { email: string; password: string; firstName: string; lastName: string; currentPlan: string }): Promise<User> {
-    // Map plan to tier (points will be awarded via transaction)
-    const tierMapping: Record<string, { tier: string; points: number }> = {
-      'Essential': { tier: 'starter', points: 100 },
-      'Core': { tier: 'starter', points: 100 },
-      'Plus': { tier: 'explorer', points: 200 },
-      'Prime': { tier: 'explorer', points: 200 },
-      'Deluxe': { tier: 'champion', points: 300 },
-      'Elite': { tier: 'champion', points: 300 },
-      'Bronze': { tier: 'elite', points: 500 },
-      'Silver': { tier: 'elite', points: 500 },
-      'Gold': { tier: 'elite', points: 500 },
-      'Platinum': { tier: 'elite', points: 500 },
-    };
-
-    const planInfo = tierMapping[userData.currentPlan] || { tier: 'starter', points: 100 };
+  async createUserWithEmail(userData: { email: string; password: string; firstName: string; lastName: string; currentPlan?: string }): Promise<User> {
+    // Default to starter tier if no plan provided
+    const defaultTier = 'starter';
 
     const [newUser] = await db
       .insert(users)
@@ -216,9 +203,9 @@ export class DatabaseStorage implements IStorage {
         password: userData.password,
         firstName: userData.firstName,
         lastName: userData.lastName,
-        currentPlan: userData.currentPlan,
+        currentPlan: userData.currentPlan || null,
         totalPoints: 0, // Start with 0 points - welcome bonus added via transaction
-        membershipTier: planInfo.tier,
+        membershipTier: defaultTier,
         isActive: true,
         emailNotifications: true,
         pushNotifications: false,

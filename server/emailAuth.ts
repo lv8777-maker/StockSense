@@ -10,11 +10,11 @@ export async function setupEmailAuth(app: Express) {
   // Email/password registration endpoint with rate limiting
   app.post("/api/auth/register", authLimiter, async (req, res) => {
     try {
-      const { firstName, lastName, email, password, currentPlan } = req.body;
+      const { firstName, lastName, email, password } = req.body;
       
-      if (!firstName || !lastName || !email || !password || !currentPlan) {
+      if (!firstName || !lastName || !email || !password) {
         return res.status(400).json({ 
-          message: "All fields are required: firstName, lastName, email, password, currentPlan" 
+          message: "All fields are required: firstName, lastName, email, password" 
         });
       }
 
@@ -29,36 +29,22 @@ export async function setupEmailAuth(app: Express) {
       // Hash password using bcrypt (10 salt rounds for security)
       const hashedPassword = await bcrypt.hash(password, 10);
 
-      // Plan to points mapping for welcome bonus
-      const planPointsMapping: Record<string, number> = {
-        'Essential': 100,
-        'Core': 100,
-        'Plus': 200,
-        'Prime': 200,
-        'Deluxe': 300,
-        'Elite': 300,
-        'Bronze': 500,
-        'Silver': 500,
-        'Gold': 500,
-        'Platinum': 500,
-      };
-      
-      const welcomePoints = planPointsMapping[currentPlan] || 100;
+      // Default welcome bonus (100 points)
+      const welcomePoints = 100;
 
-      // Create new user with hashed password (starts with 0 points)
+      // Create new user with hashed password (starts with 0 points, no plan required)
       const user = await storage.createUserWithEmail({
         firstName,
         lastName,
         email,
-        password: hashedPassword,
-        currentPlan
+        password: hashedPassword
       });
 
       // Award welcome bonus via transaction (this will update user's totalPoints)
       await storage.createTransaction({
         userId: user.id,
         type: 'earning',
-        description: `Welcome to Maverick Loyalty! Plan selection bonus for ${currentPlan}`,
+        description: 'Welcome to Maverick Loyalty!',
         amount: "0.00",
         pointsEarned: welcomePoints,
         pointsSpent: 0,
