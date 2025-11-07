@@ -123,23 +123,12 @@ export const offers = pgTable("offers", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Social media connections
-export const socialConnections = pgTable("social_connections", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id),
-  platform: varchar("platform").notNull(), // facebook, instagram, linkedin
-  externalId: varchar("external_id"),
-  isConnected: boolean("is_connected").default(true),
-  bonusAwarded: boolean("bonus_awarded").default(false),
-  connectedAt: timestamp("connected_at").defaultNow(),
-});
 
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   transactions: many(transactions),
   redemptions: many(redemptions),
   offers: many(offers),
-  socialConnections: many(socialConnections),
   receiptUploads: many(receiptUploads),
 }));
 
@@ -172,12 +161,6 @@ export const offersRelations = relations(offers, ({ one }) => ({
   }),
 }));
 
-export const socialConnectionsRelations = relations(socialConnections, ({ one }) => ({
-  user: one(users, {
-    fields: [socialConnections.userId],
-    references: [users.id],
-  }),
-}));
 
 export const receiptUploadsRelations = relations(receiptUploads, ({ one }) => ({
   user: one(users, {
@@ -233,12 +216,6 @@ export const insertOfferSchema = createInsertSchema(offers).omit({
   createdAt: true,
 });
 
-export const insertSocialConnectionSchema = createInsertSchema(socialConnections).omit({
-  id: true,
-  connectedAt: true,
-});
-export type InsertSocialConnection = z.infer<typeof insertSocialConnectionSchema>;
-export type SocialConnection = typeof socialConnections.$inferSelect;
 
 export const insertReceiptUploadSchema = createInsertSchema(receiptUploads).omit({
   id: true,
