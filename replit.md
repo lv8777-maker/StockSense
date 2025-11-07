@@ -8,6 +8,33 @@ Preferred communication style: Simple, everyday language.
 
 # Recent Project Completion
 
+## Demo Materials Creation (November 2025)
+- **COMPLETED**: Comprehensive demo resources created for Friday client presentation
+- **DEMO_GUIDE.md**: Complete 10-part demo walkthrough (50 min full, with 10/30/15 min variations)
+  - Registration & authentication demonstration
+  - Dashboard tour with tier system explanation
+  - Receipt upload & OCR processing showcase
+  - Rewards catalog browsing and redemption
+  - Transaction history and tier progression
+  - Profile management walkthrough
+  - Campaigns & offers demonstration
+  - Mobile experience showcase
+  - Security features overview
+  - Demo tips, talking points, and Q&A preparation
+- **DEMO_DATA_SETUP.md**: Instructions for populating app with realistic presentation data
+  - 16 sample rewards across 4 categories (Food, Merchandise, Experiences, Discounts)
+  - 5 sample campaigns (4 active, 1 draft)
+  - Seeding script usage guide with actual console output
+  - Customization instructions and troubleshooting
+- **server/seedDemoData.ts**: Automated demo data seeding script
+  - Clears and replaces all campaigns
+  - Additively inserts 16 rewards (preserves existing to avoid breaking redemption history)
+  - Improved error handling distinguishing duplicates from real failures
+  - Safe for repeated runs
+- **Testing**: End-to-end verification confirmed all demo flows work (registration → rewards → campaigns → dashboard)
+- **Architect Approved**: Documentation accurately describes behavior, ready for client presentation
+- **Camera Enhancement**: Receipt upload supports mobile camera capture via `capture="environment"` attribute
+
 ## Social Media & Newsletter Removal (November 2025)
 - **COMPLETED**: Removed all social media integration features and newsletter mentions at user request
 - **Removed Database**: social_connections table schema and relations
