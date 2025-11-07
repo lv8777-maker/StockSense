@@ -555,18 +555,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Social connection routes
-  app.get('/api/social-connections', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const connections = await storage.getUserSocialConnections(userId);
-      res.json(connections);
-    } catch (error) {
-      console.error("Error fetching social connections:", error);
-      res.status(500).json({ message: "Failed to fetch social connections" });
-    }
-  });
-
   // Admin routes
   app.get('/api/admin/users', isAuthenticated, async (req, res) => {
     try {
