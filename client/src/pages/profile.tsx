@@ -50,10 +50,6 @@ export default function Profile() {
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
 
-  const { data: socialConnections = [] } = useQuery({
-    queryKey: ["/api/social-connections"],
-  });
-
   const form = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
@@ -94,30 +90,6 @@ export default function Profile() {
   const onSubmit = (data: ProfileFormData) => {
     updateProfileMutation.mutate(data);
   };
-
-  const socialPlatforms = [
-    { 
-      id: 'facebook', 
-      name: 'Facebook', 
-      icon: 'fab fa-facebook', 
-      color: 'text-blue-600',
-      connected: socialConnections.some((conn: any) => conn.platform === 'facebook' && conn.isConnected)
-    },
-    { 
-      id: 'instagram', 
-      name: 'Instagram', 
-      icon: 'fab fa-instagram', 
-      color: 'text-pink-600',
-      connected: socialConnections.some((conn: any) => conn.platform === 'instagram' && conn.isConnected)
-    },
-    { 
-      id: 'linkedin', 
-      name: 'LinkedIn', 
-      icon: 'fab fa-linkedin', 
-      color: 'text-blue-700',
-      connected: socialConnections.some((conn: any) => conn.platform === 'linkedin' && conn.isConnected)
-    },
-  ];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -307,40 +279,6 @@ export default function Profile() {
               <p className="text-xs text-gray-500 mt-2">
                 JPG, PNG or GIF. Max 2MB.
               </p>
-            </CardContent>
-          </Card>
-
-          {/* Social Media Connections */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Social Media</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {socialPlatforms.map((platform) => (
-                  <div key={platform.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <i className={`${platform.icon} ${platform.color} text-lg`} />
-                      <span className="text-sm font-medium text-gray-700">{platform.name}</span>
-                    </div>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      className={platform.connected ? "text-green-600" : "text-primary hover:text-blue-700"}
-                      data-testid={`button-connect-${platform.id}`}
-                    >
-                      {platform.connected ? "Connected" : "Connect"}
-                    </Button>
-                  </div>
-                ))}
-              </div>
-              
-              <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-                <p className="text-xs text-blue-800">
-                  <i className="fas fa-info-circle mr-1" />
-                  Connect your social media accounts to earn bonus points and get personalized offers!
-                </p>
-              </div>
             </CardContent>
           </Card>
 
