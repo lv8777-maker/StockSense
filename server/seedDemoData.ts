@@ -280,8 +280,12 @@ async function seedDemoData() {
         console.log(`   ✓ Added: ${reward.name} (${reward.pointsCost} points)`);
         rewardsAdded++;
       } catch (error: any) {
-        // Skip if reward already exists or other error
-        console.log(`   ⊘ Skipped: ${reward.name} (may already exist)`);
+        // Check if it's a duplicate or another error
+        if (error.code === '23505' || error.message?.includes('duplicate') || error.message?.includes('unique')) {
+          console.log(`   ⊘ Skipped: ${reward.name} (already exists)`);
+        } else {
+          console.log(`   ⚠ Warning: Failed to add ${reward.name} - ${error.message || 'Unknown error'}`);
+        }
       }
     }
     console.log(`✅ Added ${rewardsAdded} new rewards\n`);

@@ -56,38 +56,71 @@ tsx server/seedDemoData.ts
 ```
 
 **What happens:**
-1. Clears existing rewards and campaigns (preserves users and transactions)
-2. Inserts 16 sample rewards across 4 categories
+1. **Clears and replaces** all existing campaigns (preserves users and transactions)
+2. **Additively inserts** 16 sample rewards (skips duplicates, preserves existing rewards)
 3. Inserts 5 sample campaigns (4 active, 1 draft)
 4. Displays success confirmation
 
-**Output:**
+**Why preserve existing rewards?**
+- Existing rewards may have redemption history (foreign key constraints)
+- Deleting them would break user redemption records
+- Additive approach is safer for demo purposes
+
+**Output (First Run):**
 ```
 🌱 Starting demo data seeding...
 
-🧹 Clearing existing rewards and campaigns...
-✅ Cleared existing data
+🧹 Clearing existing campaigns...
+✅ Cleared existing campaigns
 
-🎁 Seeding rewards...
+ℹ️  Note: Existing rewards preserved (may have redemption history)
+
+🎁 Adding sample rewards...
    ✓ Added: R50 Starbucks Voucher (100 points)
    ✓ Added: R100 Nando's Gift Card (200 points)
-   ...
-✅ Seeded 16 rewards
+   ✓ Added: R150 Woolworths Food Voucher (300 points)
+   ✓ Added: R200 Restaurant Voucher (400 points)
+   ✓ Added: Wireless Bluetooth Earbuds (500 points)
+   ✓ Added: Maverick Branded Backpack (350 points)
+   ✓ Added: Portable Power Bank 20000mAh (400 points)
+   ✓ Added: Smartwatch Fitness Tracker (800 points)
+   ✓ Added: Movie Night for Two (300 points)
+   ✓ Added: Spa Day Package (1000 points)
+   ✓ Added: Adventure Experience Voucher (1500 points)
+   ✓ Added: Weekend Getaway for Two (2000 points)
+   ✓ Added: 10% Off Next Purchase (50 points)
+   ✓ Added: R100 Airtime Credit (100 points)
+   ✓ Added: Free Data Upgrade (5GB) (250 points)
+   ✓ Added: Premium Plan Free Month (1200 points)
+✅ Added 16 new rewards
 
 📢 Seeding campaigns...
    ✓ Added: Double Points Weekend (active)
    ✓ Added: New User Welcome Bonus (active)
-   ...
+   ✓ Added: Champion Tier Upgrade Challenge (active)
+   ✓ Added: Holiday Season Cashback (active)
+   ✓ Added: Elite Member Exclusive (draft)
 ✅ Seeded 5 campaigns
 
 🎉 Demo data seeding completed successfully!
 
 📊 Summary:
-   - 16 rewards across 4 categories
-   - 5 campaigns (4 active, 1 draft)
+   - 16 rewards added (skipped existing duplicates)
+   - 5 campaigns replaced (4 active, 1 draft)
 
 ✨ Your app is now ready for an impressive demo!
 ```
+
+**Output (Subsequent Runs):**
+If you run the script again, you'll see rewards being skipped:
+```
+🎁 Adding sample rewards...
+   ⊘ Skipped: R50 Starbucks Voucher (already exists)
+   ⊘ Skipped: R100 Nando's Gift Card (already exists)
+   ...
+✅ Added 0 new rewards
+```
+Campaigns are always refreshed regardless.
 
 ---
 
@@ -122,18 +155,20 @@ tsx server/seedDemoData.ts
 ```
 
 This ensures:
-- Fresh, clean data
-- No test/junk entries
+- Fresh campaigns (all campaigns replaced)
+- Sample rewards available (additive, won't break existing data)
 - Consistent presentation
 - Professional appearance
 
+**Note:** The script preserves existing rewards, so if you've manually added custom rewards for your demo, they'll remain alongside the seeded ones.
+
 ### After Development/Testing
-If your database has test data or old entries:
+If your database has test campaigns or you want fresh campaign data:
 ```bash
 tsx server/seedDemoData.ts
 ```
 
-This resets to a clean demo state.
+This replaces all campaigns and adds any missing sample rewards.
 
 ---
 
@@ -294,21 +329,32 @@ npm run db:push
 
 ## 🔄 Resetting to Clean State
 
-### Full Reset (Keeps Users)
+### Campaign Reset (Standard)
 ```bash
 tsx server/seedDemoData.ts
 ```
-- Clears old rewards/campaigns
-- Keeps user accounts and transactions
-- Perfect for fresh demo while preserving test users
+- Clears and replaces all campaigns
+- Adds new rewards (preserves existing rewards)
+- Keeps user accounts and transactions intact
+- Safe for demos - won't break redemption history
+
+**Best for:** Refreshing campaign data while keeping everything else
 
 ### Complete Database Reset
-If you need to clear EVERYTHING:
+If you need to clear EVERYTHING (including rewards):
 ```bash
-# WARNING: This deletes ALL data including users
+# WARNING: This deletes ALL data including users, rewards, and redemptions
 npm run db:push --force
 tsx server/seedDemoData.ts
 ```
+
+**Use this when:**
+- Starting completely fresh
+- Too many test rewards cluttering the catalog
+- Want to demo with only the 16 seeded rewards
+- Database has corrupted or inconsistent data
+
+**Warning:** This nuclear option deletes all user accounts, transactions, redemptions, and rewards. Only use if you're certain!
 
 ---
 
