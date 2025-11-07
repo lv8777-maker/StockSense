@@ -8,6 +8,16 @@ Preferred communication style: Simple, everyday language.
 
 # Recent Project Completion
 
+## Social Media & Newsletter Removal (November 2025)
+- **COMPLETED**: Removed all social media integration features and newsletter mentions at user request
+- **Removed Database**: social_connections table schema and relations
+- **Removed API Routes**: GET /api/social-connections endpoint
+- **Removed Storage Methods**: getUserSocialConnections, createSocialConnection from IStorage
+- **Removed Frontend**: Social Media Connections card from Profile page
+- **Removed Content**: "Monthly newsletters" benefit from Starter tier benefits
+- **Simplified Profile**: Profile page now focuses on personal information and notification preferences only
+- **Architecture**: Streamlined application removes external social platform dependencies
+
 ## Notification System Removal (October 2025)
 - **COMPLETED**: Removed notification centre and all related infrastructure at user request
 - **Removed Files**: NotificationService.ts, notifications.tsx page
@@ -106,7 +116,7 @@ The frontend is built using React with TypeScript, utilizing a component-based a
 The backend follows a RESTful API design built on Express.js with TypeScript. The server implements middleware for request logging, JSON parsing, and error handling. Authentication is handled through Replit's OpenID Connect integration with session management using PostgreSQL-backed sessions. The API routes are organized around core business entities: users, rewards, transactions, redemptions, and offers.
 
 ## Database Design
-The application uses PostgreSQL as the primary database with Drizzle ORM for type-safe database operations. The schema is centralized in a shared module and includes tables for user management, rewards catalog, transaction history, redemptions, offers, social connections, and session storage. The database supports features like membership tiers, points tracking, and comprehensive audit trails.
+The application uses PostgreSQL as the primary database with Drizzle ORM for type-safe database operations. The schema is centralized in a shared module and includes tables for user management, rewards catalog, transaction history, redemptions, offers, and session storage. The database supports features like membership tiers, points tracking, and comprehensive audit trails.
 
 ## Authentication and Authorization
 The system supports dual authentication methods:
