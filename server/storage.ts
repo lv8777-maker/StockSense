@@ -4,7 +4,6 @@ import {
   transactions,
   redemptions,
   offers,
-  socialConnections,
   receiptUploads,
   campaigns,
   loyaltyAccounts,
@@ -22,8 +21,6 @@ import {
   type InsertRedemption,
   type Offer,
   type InsertOffer,
-  type SocialConnection,
-  type InsertSocialConnection,
   type ReceiptUpload,
   type InsertReceiptUpload,
   type Campaign,
@@ -88,9 +85,6 @@ export interface IStorage {
   createOffer(offer: InsertOffer): Promise<Offer>;
   markOfferUsed(offerId: string): Promise<void>;
   
-  // Social connections
-  getUserSocialConnections(userId: string): Promise<SocialConnection[]>;
-  createSocialConnection(connection: InsertSocialConnection): Promise<SocialConnection>;
   
   // Receipt uploads
   createReceiptUpload(upload: InsertReceiptUpload): Promise<ReceiptUpload>;
@@ -493,22 +487,6 @@ export class DatabaseStorage implements IStorage {
       .update(offers)
       .set({ isUsed: true })
       .where(eq(offers.id, offerId));
-  }
-
-  // Social connections
-  async getUserSocialConnections(userId: string): Promise<SocialConnection[]> {
-    return await db
-      .select()
-      .from(socialConnections)
-      .where(eq(socialConnections.userId, userId));
-  }
-
-  async createSocialConnection(connection: InsertSocialConnection): Promise<SocialConnection> {
-    const [newConnection] = await db
-      .insert(socialConnections)
-      .values(connection)
-      .returning();
-    return newConnection;
   }
 
   async createReceiptUpload(upload: InsertReceiptUpload): Promise<ReceiptUpload> {
