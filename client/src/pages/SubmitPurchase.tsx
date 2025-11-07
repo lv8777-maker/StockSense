@@ -177,6 +177,7 @@ export default function SubmitPurchase() {
               <Input
                 type="file"
                 accept="image/*"
+                capture="environment"
                 onChange={handleFileSelect}
                 className="hidden"
                 id="receipt-upload"
@@ -185,7 +186,7 @@ export default function SubmitPurchase() {
               <label htmlFor="receipt-upload" className="cursor-pointer">
                 <Receipt className="h-12 w-12 text-gray-400 mx-auto mb-3" />
                 <p className="text-sm text-gray-600 mb-2">
-                  {selectedFile ? selectedFile.name : "Click to upload or drag and drop"}
+                  {selectedFile ? selectedFile.name : "Click to upload or take a photo"}
                 </p>
                 <p className="text-xs text-gray-500">PNG, JPG, WebP up to 10MB</p>
               </label>
