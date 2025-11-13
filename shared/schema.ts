@@ -267,16 +267,13 @@ export const campaigns = pgTable("campaigns", {
 // Admin users for the system
 export const adminUsers = pgTable("admin_users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id), // Link to users table - allows admins to also be loyalty members
   email: varchar("email").unique().notNull(),
-  firstName: varchar("first_name").notNull(),
-  lastName: varchar("last_name").notNull(),
   role: varchar("role").notNull(), // super_admin, admin, manager, analyst
   permissions: jsonb("permissions"), // granular permissions
   isActive: boolean("is_active").default(true),
+  createdBy: varchar("created_by"), // Admin ID who created this admin
   lastLoginAt: timestamp("last_login_at"),
-  passwordHash: varchar("password_hash"),
-  mfaSecret: varchar("mfa_secret"),
-  mfaEnabled: boolean("mfa_enabled").default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

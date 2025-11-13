@@ -109,7 +109,12 @@ export interface IStorage {
 
   // Admin Users
   getAdminUser(email: string): Promise<AdminUser | undefined>;
+  getAdminByUserId(userId: string): Promise<AdminUser | null>;
+  getAdminById(adminId: string): Promise<AdminUser | null>;
+  listAdminUsers(): Promise<AdminUser[]>;
   createAdminUser(admin: InsertAdminUser): Promise<AdminUser>;
+  updateAdminUser(adminId: string, updates: Partial<AdminUser>): Promise<AdminUser>;
+  deactivateAdmin(adminId: string): Promise<void>;
   
   // Admin operations
   getAllUsers(): Promise<User[]>;
@@ -119,6 +124,8 @@ export interface IStorage {
     totalPointsRedeemed: number;
     monthlyRevenue: string;
   }>;
+  deactivateUser(userId: string): Promise<void>;
+  softDeactivateReward(rewardId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -627,9 +634,64 @@ export class DatabaseStorage implements IStorage {
     return admin;
   }
 
+  async getAdminByUserId(userId: string): Promise<AdminUser | null> {
+    const [admin] = await db
+      .select()
+      .from(adminUsers)
+      .where(eq(adminUsers.userId, userId))
+      .limit(1);
+    return admin || null;
+  }
+
+  async getAdminById(adminId: string): Promise<AdminUser | null> {
+    const [admin] = await db
+      .select()
+      .from(adminUsers)
+      .where(eq(adminUsers.id, adminId))
+      .limit(1);
+    return admin || null;
+  }
+
+  async listAdminUsers(): Promise<AdminUser[]> {
+    return await db
+      .select()
+      .from(adminUsers)
+      .orderBy(desc(adminUsers.createdAt));
+  }
+
   async createAdminUser(admin: InsertAdminUser): Promise<AdminUser> {
     const [newAdmin] = await db.insert(adminUsers).values(admin).returning();
     return newAdmin;
+  }
+
+  async updateAdminUser(adminId: string, updates: Partial<AdminUser>): Promise<AdminUser> {
+    const [updated] = await db
+      .update(adminUsers)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(adminUsers.id, adminId))
+      .returning();
+    return updated;
+  }
+
+  async deactivateAdmin(adminId: string): Promise<void> {
+    await db
+      .update(adminUsers)
+      .set({ isActive: false, updatedAt: new Date() })
+      .where(eq(adminUsers.id, adminId));
+  }
+
+  async deactivateUser(userId: string): Promise<void> {
+    await db
+      .update(users)
+      .set({ isActive: false, updatedAt: new Date() })
+      .where(eq(users.id, userId));
+  }
+
+  async softDeactivateReward(rewardId: string): Promise<void> {
+    await db
+      .update(rewards)
+      .set({ isActive: false, updatedAt: new Date() })
+      .where(eq(rewards.id, rewardId));
   }
 }
 
