@@ -75,7 +75,7 @@ export default function Admin() {
 
   const createRewardMutation = useMutation({
     mutationFn: async (data: CreateRewardFormData) => {
-      return await apiRequest("POST", "/api/rewards", data);
+      return await apiRequest("POST", "/api/admin/rewards", data);
     },
     onSuccess: () => {
       toast({
@@ -97,7 +97,7 @@ export default function Admin() {
 
   const deactivateRewardMutation = useMutation({
     mutationFn: async (rewardId: string) => {
-      return await apiRequest("DELETE", `/api/rewards/${rewardId}`, {});
+      return await apiRequest("DELETE", `/api/admin/rewards/${rewardId}`, {});
     },
     onSuccess: () => {
       toast({

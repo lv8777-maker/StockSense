@@ -7,6 +7,8 @@ import { setupEmailAuth, isEmailAuthenticated } from "./emailAuth";
 import { uploadLimiter } from "./rateLimiter";
 import { campaignService } from "./services/CampaignService";
 import { pointsEngineService } from "./services/PointsEngineService";
+import { adminRouter } from "./adminRoutes";
+import { loadAdminContext } from "./middleware/rbac";
 import { 
   insertRewardSchema, 
   insertTransactionSchema, 
@@ -26,15 +28,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   await setupEmailAuth(app);
   
   // Combined auth middleware - accepts both phone and email auth
-  const combinedAuth: typeof isAuthenticated = (req, res, next) => {
-    // Try phone auth first, then email auth
-    isAuthenticated(req, res, (err) => {
-      if (err) return next(err);
-      if (req.user) return next();
-      
-      // If phone auth failed, try email auth
-      isEmailAuthenticated(req, res, next);
-    });
+  // Since both auth methods use the same session structure, we can use a single check
+  const combinedAuth: typeof isAuthenticated = async (req: any, res, next) => {
+    if (!req.session?.user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    // Attach user to request with normalized structure
+    req.user = { 
+      claims: { sub: req.session.user.id },
+      ...req.session.user 
+    };
+    
+    next();
   };
 
   // Configure multer for receipt uploads
@@ -158,6 +164,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Rewards routes
+  // GET route - available to all authenticated users to view rewards
   app.get('/api/rewards', isAuthenticated, async (req, res) => {
     try {
       const rewards = await storage.getActiveRewards();
@@ -168,43 +175,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/rewards', isAuthenticated, async (req, res) => {
-    try {
-      const rewardData = insertRewardSchema.parse(req.body);
-      const reward = await storage.createReward(rewardData);
-      res.json(reward);
-    } catch (error) {
-      console.error("Error creating reward:", error);
-      if (error instanceof z.ZodError) {
-        res.status(400).json({ message: "Invalid reward data", errors: error.errors });
-      } else {
-        res.status(500).json({ message: "Failed to create reward" });
-      }
-    }
-  });
-
-  app.patch('/api/rewards/:id', isAuthenticated, async (req, res) => {
-    try {
-      const { id } = req.params;
-      const updates = req.body;
-      const reward = await storage.updateReward(id, updates);
-      res.json(reward);
-    } catch (error) {
-      console.error("Error updating reward:", error);
-      res.status(500).json({ message: "Failed to update reward" });
-    }
-  });
-
-  app.delete('/api/rewards/:id', isAuthenticated, async (req, res) => {
-    try {
-      const { id } = req.params;
-      await storage.deactivateReward(id);
-      res.json({ message: "Reward deactivated successfully" });
-    } catch (error) {
-      console.error("Error deactivating reward:", error);
-      res.status(500).json({ message: "Failed to deactivate reward" });
-    }
-  });
+  // Note: POST, PATCH, DELETE routes for rewards are now protected in /api/admin/rewards
+  // Only admins can create, update, or delete rewards through the admin API
 
   // Transaction routes
   app.get('/api/transactions', isAuthenticated, async (req: any, res) => {
@@ -741,25 +713,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Enhanced Admin Dashboard Routes
-  app.get('/api/admin/dashboard-stats', isAuthenticated, async (req, res) => {
-    try {
-      const stats = await storage.getUserStats();
-      
-      // Add campaign stats
-      const campaigns = await storage.getCampaigns(1, 1000);
-      const activeCampaigns = campaigns.campaigns.filter(c => c.status === 'active').length;
-      
-      res.json({
-        ...stats,
-        activeCampaigns,
-        totalCampaigns: campaigns.total,
-      });
-    } catch (error) {
-      console.error("Error fetching dashboard stats:", error);
-      res.status(500).json({ message: "Failed to fetch dashboard stats" });
-    }
-  });
+  // Mount admin router with RBAC protection
+  // combinedAuth sets req.user, then loadAdminContext verifies admin status
+  app.use('/api/admin', combinedAuth, loadAdminContext, adminRouter);
 
   // System Health Check
   app.get('/api/health', (req, res) => {

@@ -7,7 +7,7 @@ import { LogOut, Menu, X, Coins } from "lucide-react";
 
 export default function Navbar() {
   const [location] = useLocation();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLogout = async () => {
@@ -19,15 +19,19 @@ export default function Navbar() {
     }
   };
 
-  const navigationItems = [
+  // Only show admin link if user is an admin
+  const baseNavigationItems = [
     { path: "/dashboard", label: "Dashboard" },
     { path: "/rewards", label: "Rewards Catalog" },
     { path: "/submit-purchase", label: "Submit Receipt" },
     { path: "/campaigns", label: "Campaigns" },
     { path: "/history", label: "Purchase History" },
     { path: "/profile", label: "Profile" },
-    { path: "/admin", label: "Admin Panel" },
   ];
+
+  const navigationItems = isAdmin
+    ? [...baseNavigationItems, { path: "/admin", label: "Admin Panel" }]
+    : baseNavigationItems;
 
   const isActive = (path: string) => location === path;
 
