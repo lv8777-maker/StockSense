@@ -15,10 +15,15 @@ export function useAuth() {
   });
 
   // Check if user is admin
+  // Note: 403 is expected for non-admin users, so we handle errors gracefully
   const { data: adminProfile, isLoading: isAdminLoading } = useQuery<AdminProfile>({
     queryKey: ["/api/admin/profile"],
     enabled: !!user,
     retry: false,
+    meta: {
+      // Suppress error toast for 403 responses (expected for non-admins)
+      suppressErrorToast: true,
+    },
   });
 
   return {
