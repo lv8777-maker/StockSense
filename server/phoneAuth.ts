@@ -138,6 +138,14 @@ export async function setupPhoneAuth(app: Express) {
         membershipTier: user.membershipTier,
       };
 
+      // Explicitly save session before responding
+      await new Promise<void>((resolve, reject) => {
+        (req as any).session.save((err: any) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
+
       res.json({ 
         success: true, 
         user: {
