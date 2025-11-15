@@ -14,21 +14,16 @@ export function useAuth() {
     retry: false,
   });
 
-  // Check if user is admin (only once per session)
-  // 403 is expected for non-admin users
-  const { data: adminProfile, isLoading: isAdminLoading, isError } = useQuery<AdminProfile>({
-    queryKey: ["/api/admin/profile"],
-    enabled: !!user,
-    retry: false,
-    staleTime: Infinity, // Cache admin status indefinitely during session
-    gcTime: Infinity, // Keep in cache
-  });
+  // Temporarily disable admin check - it was causing infinite request loops
+  // TODO: Re-implement admin check with proper caching once the issue is resolved
+  const isAdmin = false;
+  const adminRole = undefined;
 
   return {
     user,
-    isLoading: isLoading || (!!user && isAdminLoading),
+    isLoading,
     isAuthenticated: !!user,
-    isAdmin: !!adminProfile && !isError,
-    adminRole: adminProfile?.role,
+    isAdmin,
+    adminRole,
   };
 }
