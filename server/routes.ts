@@ -341,16 +341,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
       
       const monthlyTransactions = transactions.filter(t => 
-        new Date(t.createdAt!) >= startOfMonth && t.pointsEarned > 0
+        new Date(t.createdAt!) >= startOfMonth && (t.pointsEarned ?? 0) > 0
       );
       
-      const pointsThisMonth = monthlyTransactions.reduce((sum, t) => sum + (t.pointsEarned || 0), 0);
+      const pointsThisMonth = monthlyTransactions.reduce((sum, t) => sum + (t.pointsEarned ?? 0), 0);
       const recentRedemptions = redemptions.filter(r => 
         new Date(r.redeemedAt!) >= startOfMonth
       ).length;
 
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
       const currentTier = user.membershipTier || 'bronze';
-      const currentPoints = user.totalPoints || 0;
+      const currentPoints = user.totalPoints ?? 0;
       
       // Calculate next tier info using tier requirements
       const tierRequirements = { bronze: 0, silver: 1000, gold: 5000, platinum: 15000 };
@@ -459,7 +463,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Check if user has enough points
       const user = await storage.getUser(userId);
-      if (!user || user.totalPoints < redemptionData.pointsSpent) {
+      if (!user || (user.totalPoints ?? 0) < redemptionData.pointsSpent) {
         return res.status(400).json({ message: "Insufficient points" });
       }
 
@@ -585,7 +589,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Add createdBy from authenticated user
-      data.createdBy = req.user?.claims?.sub || 'system';
+      data.createdBy = (req as any).user?.claims?.sub || 'system';
       
       const campaignData = insertCampaignSchema.parse(data);
       const campaign = await campaignService.createCampaign(campaignData);
@@ -630,7 +634,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
   // Enhanced Points Engine Routes
-  app.post('/api/points/calculate', isAuthenticated, async (req, res) => {
+  app.post('/api/points/calculate', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user?.claims?.sub;
       const { amount, category, orderId } = req.body;
@@ -649,7 +653,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/points/transaction', isAuthenticated, async (req, res) => {
+  app.post('/api/points/transaction', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user?.claims?.sub;
       const transactionData = req.body;
@@ -663,7 +667,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Loyalty Account Routes
-  app.get('/api/loyalty-account', isAuthenticated, async (req, res) => {
+  app.get('/api/loyalty-account', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user?.claims?.sub;
       const account = await storage.getLoyaltyAccount(userId);
