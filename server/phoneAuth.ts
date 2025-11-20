@@ -18,7 +18,7 @@ export function getSession() {
     secret: process.env.SESSION_SECRET || 'maverick-loyalty-secret-key',
     store: sessionStore,
     resave: false,
-    saveUninitialized: false,
+    saveUninitialized: true, // Create sessions for unauthenticated users (required for CSRF)
     cookie: {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
