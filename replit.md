@@ -32,7 +32,10 @@ The design incorporates Maverick brand colors: #3C3C3B (Dark Gray), #FDC800 (Bri
 
 ## Technical Implementations
 -   **Receipt Processing**: Utilizes Tesseract.js OCR for text extraction from receipt images, enabling automated point calculation based on product categories (Airtime, Accessories, Plans).
--   **Security Hardening**: Implements `bcrypt` hashing (10 salt rounds) for passwords and `express-rate-limit` middleware for authentication endpoints and receipt uploads to prevent brute-force attacks.
+-   **Security Hardening**: 
+    - `bcrypt` hashing (10 salt rounds) for passwords
+    - `express-rate-limit` middleware for authentication endpoints and receipt uploads to prevent brute-force attacks
+    - **CSRF Protection**: Implements stateless CSRF protection using the Double Submit Cookie Pattern via the `csrf-csrf` package. All state-changing endpoints (POST/PUT/PATCH/DELETE) are protected. The frontend automatically includes CSRF tokens via the `apiRequest()` function, which fetches tokens from `/api/csrf-token` and includes them in the `x-csrf-token` header. Tokens are tied to session IDs for per-user validation.
 -   **Admin Dashboard**: Features role-based access control (RBAC) with protected API endpoints and a dedicated `admin_users` table for managing administrative roles.
 
 # External Dependencies
@@ -63,6 +66,9 @@ The design incorporates Maverick brand colors: #3C3C3B (Dark Gray), #FDC800 (Bri
 -   **Replit OIDC**
 -   **Passport.js**
 -   **Express Session**
+-   **csrf-csrf** (CSRF protection)
+-   **cookie-parser** (required for CSRF)
+-   **bcrypt** (password hashing)
 
 ## OCR Technology
 -   **Tesseract.js**
