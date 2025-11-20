@@ -55,9 +55,8 @@ export function normalizePhoneNumber(phoneNumber: string): string {
 }
 
 export async function setupPhoneAuth(app: Express) {
-  app.set("trust proxy", 1);
-  app.use(getSession());
-
+  // Session is now initialized in server/index.ts
+  
   // Phone number registration/login endpoint with rate limiting
   app.post("/api/auth/phone", authLimiter, async (req, res) => {
     try {

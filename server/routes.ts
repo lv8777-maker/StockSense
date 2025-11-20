@@ -43,6 +43,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     next();
   };
 
+  // Get CSRF protection middleware from app.locals
+  const csrfProtection = (app as any).locals.csrfProtection;
+
+  // CSRF token endpoint - must be accessible without auth (no CSRF protection)
+  app.get('/api/csrf-token', (req, res) => {
+    try {
+      const token = (app as any).locals.generateCsrfToken(req, res);
+      res.json({ csrfToken: token });
+    } catch (error) {
+      console.error("Error generating CSRF token:", error);
+      res.status(500).json({ message: "Failed to generate CSRF token" });
+    }
+  });
+
   // Configure multer for receipt uploads
   const uploadsDir = path.join(process.cwd(), 'uploads', 'receipts');
   if (!fs.existsSync(uploadsDir)) {
