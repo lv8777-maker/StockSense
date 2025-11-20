@@ -28,22 +28,8 @@ export default function PhoneLogin({ onLoginSuccess }: PhoneLoginProps) {
 
   const loginMutation = useMutation({
     mutationFn: async (data: { phoneNumber: string; firstName?: string; lastName?: string; currentPlan?: string }) => {
-      const response = await fetch("/api/auth/phone", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify(data),
-      });
-      
-      const result = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(result.message || "Authentication failed");
-      }
-      
-      return result;
+      const response = await apiRequest("POST", "/api/auth/phone", data);
+      return await response.json();
     },
     onSuccess: (data) => {
       if (data.success) {
@@ -70,20 +56,8 @@ export default function PhoneLogin({ onLoginSuccess }: PhoneLoginProps) {
   const deregisterMutation = useMutation({
     mutationFn: async (phoneToDeregister: string) => {
       // First try to authenticate with the phone number to verify ownership
-      const authResponse = await fetch("/api/auth/phone", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({ phoneNumber: phoneToDeregister }),
-      });
-      
-      const authResult = await authResponse.json();
-      
-      if (!authResponse.ok) {
-        throw new Error("Phone number not found or authentication failed");
-      }
+      const authResponse = await apiRequest("POST", "/api/auth/phone", { phoneNumber: phoneToDeregister });
+      await authResponse.json();
       
       // If authenticated successfully, proceed with deregistration
       const response = await apiRequest("DELETE", "/api/user/phone");

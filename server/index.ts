@@ -1,10 +1,40 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { doubleCsrf } from "csrf-csrf";
+import { getSession } from "./phoneAuth";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Trust proxy for secure cookies in production
+app.set("trust proxy", 1);
+
+// Session middleware FIRST (required for CSRF)
+app.use(getSession());
+
+// CSRF Protection setup - comes after session
+const csrfUtilities = doubleCsrf({
+  getSecret: () => process.env.CSRF_SECRET || "default-csrf-secret-change-in-production",
+  getSessionIdentifier: (req) => (req as any).sessionID || "anonymous", // Uses express-session's sessionID
+  cookieName: "x-csrf-token",
+  cookieOptions: {
+    sameSite: "lax",
+    path: "/",
+    secure: process.env.NODE_ENV === "production",
+    httpOnly: true,
+  },
+  size: 64,
+  ignoredMethods: ["GET", "HEAD", "OPTIONS"], // Don't protect read-only methods
+});
+
+// Make CSRF functions available to routes
+app.locals.csrfProtection = csrfUtilities.doubleCsrfProtection;
+app.locals.generateCsrfToken = (csrfUtilities as any).generateToken || (csrfUtilities as any).csrf || (() => "");
+
+// Apply CSRF protection to all /api routes (automatically skips GET/HEAD/OPTIONS)
+app.use("/api", csrfUtilities.doubleCsrfProtection);
 
 app.use((req, res, next) => {
   const start = Date.now();

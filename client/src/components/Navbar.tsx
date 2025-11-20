@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
+import { clearCsrfToken, apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { LogOut, Menu, X, Coins } from "lucide-react";
@@ -12,7 +13,8 @@ export default function Navbar() {
 
   const handleLogout = async () => {
     try {
-      await fetch("/api/auth/logout", { method: "POST" });
+      await apiRequest("POST", "/api/auth/logout");
+      clearCsrfToken(); // Clear CSRF token on logout
       window.location.href = "/";
     } catch (error) {
       console.error("Logout failed:", error);
