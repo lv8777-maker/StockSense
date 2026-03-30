@@ -134,6 +134,11 @@ export interface IStorage {
   getPasswordResetToken(token: string): Promise<PasswordResetToken | undefined>;
   markPasswordResetTokenUsed(token: string): Promise<void>;
   updateUserPassword(userId: string, hashedPassword: string): Promise<void>;
+
+  // Points expiry
+  getPointsExpiryInfo(userId: string): Promise<{ expiryDate: Date | null; daysRemaining: number | null; isExpired: boolean; pointsAtRisk: number }>;
+  checkAndExpirePoints(userId: string): Promise<{ expired: boolean; pointsExpired: number }>;
+  runExpiryForAllUsers(): Promise<{ processed: number; expired: number }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -388,6 +393,16 @@ export class DatabaseStorage implements IStorage {
     if (transaction.pointsEarned || transaction.pointsSpent) {
       const pointsChange = (transaction.pointsEarned || 0) - (transaction.pointsSpent || 0);
       await this.updateUserPoints(transaction.userId, pointsChange);
+    }
+
+    // When points are earned (not expiry/redemption), refresh the 12-month expiry date
+    if ((transaction.pointsEarned || 0) > 0 && transaction.type !== 'expiry') {
+      const expiryDate = new Date();
+      expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+      await db
+        .update(users)
+        .set({ pointsExpiryDate: expiryDate, updatedAt: new Date() })
+        .where(eq(users.id, transaction.userId));
     }
 
     return newTransaction;
@@ -700,6 +715,77 @@ export class DatabaseStorage implements IStorage {
       .update(rewards)
       .set({ isActive: false, updatedAt: new Date() })
       .where(eq(rewards.id, rewardId));
+  }
+
+  async getPointsExpiryInfo(userId: string): Promise<{ expiryDate: Date | null; daysRemaining: number | null; isExpired: boolean; pointsAtRisk: number }> {
+    const user = await this.getUser(userId);
+    if (!user) return { expiryDate: null, daysRemaining: null, isExpired: false, pointsAtRisk: 0 };
+
+    const expiryDate = user.pointsExpiryDate ? new Date(user.pointsExpiryDate) : null;
+    const pointsAtRisk = user.totalPoints || 0;
+
+    if (!expiryDate) {
+      return { expiryDate: null, daysRemaining: null, isExpired: false, pointsAtRisk };
+    }
+
+    const now = new Date();
+    const msRemaining = expiryDate.getTime() - now.getTime();
+    const daysRemaining = Math.ceil(msRemaining / (1000 * 60 * 60 * 24));
+    const isExpired = msRemaining <= 0;
+
+    return { expiryDate, daysRemaining, isExpired, pointsAtRisk };
+  }
+
+  async checkAndExpirePoints(userId: string): Promise<{ expired: boolean; pointsExpired: number }> {
+    const info = await this.getPointsExpiryInfo(userId);
+
+    if (!info.isExpired || info.pointsAtRisk === 0) {
+      return { expired: false, pointsExpired: 0 };
+    }
+
+    const pointsToExpire = info.pointsAtRisk;
+
+    await this.createTransaction({
+      userId,
+      type: 'expiry',
+      description: 'Points expired due to 12 months of inactivity',
+      amount: '0.00',
+      pointsEarned: 0,
+      pointsSpent: pointsToExpire,
+      status: 'completed',
+      orderId: `EXPIRY-${userId.substring(0, 8)}-${Date.now()}`,
+    });
+
+    // Clear the expiry date since all points are now gone
+    await db
+      .update(users)
+      .set({ pointsExpiryDate: null, updatedAt: new Date() })
+      .where(eq(users.id, userId));
+
+    console.log(`[Points Expiry] Expired ${pointsToExpire} points for user ${userId}`);
+    return { expired: true, pointsExpired: pointsToExpire };
+  }
+
+  async runExpiryForAllUsers(): Promise<{ processed: number; expired: number }> {
+    const now = new Date();
+    const expiredUsers = await db
+      .select({ id: users.id, totalPoints: users.totalPoints })
+      .from(users)
+      .where(
+        and(
+          sql`${users.pointsExpiryDate} IS NOT NULL`,
+          sql`${users.pointsExpiryDate} < ${now.toISOString()}`,
+          sql`${users.totalPoints} > 0`
+        )
+      );
+
+    let expiredCount = 0;
+    for (const user of expiredUsers) {
+      const result = await this.checkAndExpirePoints(user.id);
+      if (result.expired) expiredCount++;
+    }
+
+    return { processed: expiredUsers.length, expired: expiredCount };
   }
 
   async createPasswordResetToken(userId: string): Promise<string> {

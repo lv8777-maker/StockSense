@@ -731,6 +731,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Points Expiry Routes
+  app.get('/api/points/expiry', combinedAuth, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+
+      // Auto-run expiry check on every fetch — safe to call repeatedly
+      await storage.checkAndExpirePoints(userId);
+
+      const info = await storage.getPointsExpiryInfo(userId);
+      res.json(info);
+    } catch (error) {
+      console.error("Error fetching points expiry info:", error);
+      res.status(500).json({ message: "Failed to fetch points expiry info" });
+    }
+  });
+
+  app.post('/api/admin/run-expiry', combinedAuth, loadAdminContext, async (req: any, res) => {
+    try {
+      const result = await storage.runExpiryForAllUsers();
+      console.log(`[Admin] Points expiry run: ${result.processed} users processed, ${result.expired} had points expired`);
+      res.json({ success: true, ...result });
+    } catch (error) {
+      console.error("Error running points expiry:", error);
+      res.status(500).json({ message: "Failed to run points expiry" });
+    }
+  });
+
   // Mount admin router with RBAC protection
   // combinedAuth sets req.user, then loadAdminContext verifies admin status
   app.use('/api/admin', combinedAuth, loadAdminContext, adminRouter);

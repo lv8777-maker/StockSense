@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useResponsive } from "@/hooks/useResponsive";
@@ -18,7 +19,9 @@ import {
   ShoppingCart,
   Award,
   Calendar,
-  Crown
+  Crown,
+  AlertTriangle,
+  X
 } from "lucide-react";
 
 interface DashboardStats {
@@ -41,12 +44,25 @@ interface RecentActivity {
   status: string;
 }
 
+interface PointsExpiryInfo {
+  expiryDate: string | null;
+  daysRemaining: number | null;
+  isExpired: boolean;
+  pointsAtRisk: number;
+}
+
 export default function Dashboard() {
   const { user } = useAuth();
   const { isMobile } = useResponsive();
+  const [expiryBannerDismissed, setExpiryBannerDismissed] = useState(false);
 
   const { data: stats } = useQuery<DashboardStats>({
     queryKey: ["/api/dashboard/stats"],
+  });
+
+  const { data: expiryInfo } = useQuery<PointsExpiryInfo>({
+    queryKey: ["/api/points/expiry"],
+    staleTime: 5 * 60 * 1000, // cache for 5 min
   });
 
   const { data: recentActivity = [] } = useQuery<RecentActivity[]>({
@@ -94,10 +110,35 @@ export default function Dashboard() {
     );
   }
 
+  const showExpiryWarning = !expiryBannerDismissed && expiryInfo && expiryInfo.expiryDate && (expiryInfo.daysRemaining !== null && expiryInfo.daysRemaining <= 30) && (expiryInfo.pointsAtRisk > 0);
+  const isUrgent = expiryInfo && expiryInfo.daysRemaining !== null && expiryInfo.daysRemaining <= 7;
+
   return (
     <>
       <Navbar />
       <div className="max-w-7xl mx-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
+
+      {/* Points Expiry Warning Banner */}
+      {showExpiryWarning && (
+        <div className={`rounded-lg p-4 flex items-start gap-3 ${isUrgent ? 'bg-red-50 border border-red-200' : 'bg-amber-50 border border-amber-200'}`}>
+          <AlertTriangle className={`h-5 w-5 mt-0.5 flex-shrink-0 ${isUrgent ? 'text-red-500' : 'text-amber-500'}`} />
+          <div className="flex-1 min-w-0">
+            <p className={`font-semibold text-sm ${isUrgent ? 'text-red-800' : 'text-amber-800'}`}>
+              {isUrgent ? 'Your points expire very soon!' : 'Your points are expiring soon'}
+            </p>
+            <p className={`text-sm mt-0.5 ${isUrgent ? 'text-red-700' : 'text-amber-700'}`}>
+              <span className="font-medium">{expiryInfo!.pointsAtRisk.toLocaleString()} points</span> will expire in{' '}
+              <span className="font-medium">{expiryInfo!.daysRemaining} {expiryInfo!.daysRemaining === 1 ? 'day' : 'days'}</span> on{' '}
+              {new Date(expiryInfo!.expiryDate!).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' })}.
+              {' '}Earn or redeem points before then to keep them active.
+            </p>
+          </div>
+          <button onClick={() => setExpiryBannerDismissed(true)} className="text-gray-400 hover:text-gray-600 flex-shrink-0">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
       {/* Welcome Header */}
       <div className="bg-gradient-to-r from-[#3C3C3B] to-gray-800 text-white rounded-lg p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
