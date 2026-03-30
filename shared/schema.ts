@@ -44,6 +44,7 @@ export const users = pgTable("users", {
   emailNotifications: boolean("email_notifications").default(true),
   pushNotifications: boolean("push_notifications").default(false),
   marketingMessages: boolean("marketing_messages").default(true),
+  pointsExpiryDate: timestamp("points_expiry_date"), // 12 months from last points-earning activity
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

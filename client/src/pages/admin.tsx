@@ -34,7 +34,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { insertRewardSchema } from "@shared/schema";
-import { Users, Gift, Coins, TrendingUp, Download, Plus } from "lucide-react";
+import { Users, Gift, Coins, TrendingUp, Download, Plus, Clock, AlertTriangle } from "lucide-react";
 import { z } from "zod";
 import Navbar from "@/components/Navbar";
 
@@ -106,6 +106,27 @@ export default function Admin() {
       });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/rewards"] });
       queryClient.invalidateQueries({ queryKey: ["/api/rewards"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const runExpiryMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest("POST", "/api/admin/run-expiry", {});
+    },
+    onSuccess: (data: any) => {
+      toast({
+        title: "Expiry Run Complete",
+        description: `Processed ${data.processed} users. ${data.expired} had points expired.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] });
     },
     onError: (error: Error) => {
       toast({
@@ -471,6 +492,49 @@ export default function Admin() {
                   <Users className="mx-auto h-12 w-12 mb-2" />
                   <p className="font-medium">Customer Engagement</p>
                   <p className="text-sm">Chart implementation needed</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Points Expiry Management */}
+            <Card className="lg:col-span-2">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-[#3C3C3B]">
+                  <Clock className="h-5 w-5 text-amber-500" />
+                  Points Expiry Management
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-600">
+                      Points expire after <span className="font-semibold">12 months of inactivity</span>. 
+                      Running this will immediately expire points for all users whose activity deadline has passed.
+                      Users are warned 30 days in advance on their dashboard.
+                    </p>
+                    <div className="mt-2 flex items-center gap-2 text-xs text-amber-700 bg-amber-50 rounded px-3 py-2 w-fit">
+                      <AlertTriangle className="h-3 w-3" />
+                      This action is irreversible — expired points cannot be restored.
+                    </div>
+                  </div>
+                  <Button
+                    onClick={() => runExpiryMutation.mutate()}
+                    disabled={runExpiryMutation.isPending}
+                    variant="outline"
+                    className="border-amber-300 text-amber-700 hover:bg-amber-50 whitespace-nowrap"
+                  >
+                    {runExpiryMutation.isPending ? (
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+                        Running...
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4" />
+                        Run Points Expiry Now
+                      </div>
+                    )}
+                  </Button>
                 </div>
               </CardContent>
             </Card>
