@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Gift, Search, Coins, Award, ShoppingCart, AlertCircle } from "lucide-react";
+import { Gift, Coins, Award, ShoppingCart, AlertCircle, Coffee, Utensils, Clapperboard, ShoppingBasket, Fuel, Smartphone, Watch, Cpu, Sparkles, Compass } from "lucide-react";
 import type { Reward } from "@shared/schema";
 import Navbar from "@/components/Navbar";
 
@@ -73,8 +73,37 @@ export default function Rewards() {
     { value: "food", label: "Food & Drinks" },
     { value: "merchandise", label: "Merchandise" },
     { value: "experiences", label: "Experiences" },
-    { value: "discounts", label: "Discounts" },
+    { value: "discounts", label: "Airtime & Discounts" },
   ];
+
+  const getRewardIcon = (name: string, category: string) => {
+    const n = name.toLowerCase();
+    if (n.includes("cappuccino") || n.includes("coffee")) return Coffee;
+    if (n.includes("lunch") || n.includes("nando") || n.includes("kauai") || n.includes("restaurant") || n.includes("food") || n.includes("grocery") || n.includes("woolworth") || n.includes("checkers")) return Utensils;
+    if (n.includes("movie") || n.includes("cinema") || n.includes("ticket")) return Clapperboard;
+    if (n.includes("grocery") || n.includes("voucher") && category === "food") return ShoppingBasket;
+    if (n.includes("fuel") || n.includes("petrol")) return Fuel;
+    if (n.includes("airtime") || n.includes("data") || n.includes("mtn")) return Smartphone;
+    if (n.includes("accessory") || n.includes("in-store")) return Watch;
+    if (n.includes("gadget") || n.includes("powerbank") || n.includes("bluetooth") || n.includes("speaker")) return Cpu;
+    if (n.includes("spa") || n.includes("wellness")) return Sparkles;
+    if (n.includes("weekend") || n.includes("getaway") || n.includes("experience")) return Compass;
+    if (category === "food") return Utensils;
+    if (category === "merchandise") return Watch;
+    if (category === "experiences") return Compass;
+    if (category === "discounts") return Smartphone;
+    return Gift;
+  };
+
+  const getCategoryColor = (category: string) => {
+    switch (category) {
+      case "food": return "from-orange-400 to-orange-300";
+      case "merchandise": return "from-blue-500 to-blue-400";
+      case "experiences": return "from-purple-500 to-purple-400";
+      case "discounts": return "from-green-500 to-green-400";
+      default: return "from-[#FDC800] to-[#FDC800]/70";
+    }
+  };
 
   const filteredRewards = selectedCategory === "all" 
     ? rewards.filter((reward: Reward) => reward.isActive)
@@ -160,18 +189,25 @@ export default function Rewards() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredRewards.map((reward: Reward) => (
+          {filteredRewards.map((reward: Reward) => {
+            const Icon = getRewardIcon(reward.name, reward.category ?? "");
+            const gradientClass = getCategoryColor(reward.category ?? "");
+            return (
             <Card key={reward.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-              <div className="h-48 bg-gradient-to-br from-[#FDC800] to-[#FDC800]/70 flex items-center justify-center">
-                <Gift className="h-16 w-16 text-[#3C3C3B]" />
+              <div className={`h-44 bg-gradient-to-br ${gradientClass} flex items-center justify-center`}>
+                <Icon className="h-16 w-16 text-white drop-shadow-sm" />
               </div>
               <CardContent className="p-6">
                 <div className="flex justify-between items-start mb-2">
-                  <h3 className="font-semibold text-lg text-gray-900" data-testid={`reward-title-${reward.id}`}>
+                  <h3 className="font-semibold text-lg text-gray-900 leading-snug pr-2" data-testid={`reward-title-${reward.id}`}>
                     {reward.name}
                   </h3>
-                  <Badge className="bg-[#FDC800] text-[#3C3C3B]" data-testid={`reward-category-${reward.id}`}>
-                    {reward.category}
+                  <Badge className="bg-[#FDC800] text-[#3C3C3B] shrink-0" data-testid={`reward-category-${reward.id}`}>
+                    {reward.category === "food" ? "Food & Drinks" :
+                     reward.category === "merchandise" ? "Merchandise" :
+                     reward.category === "experiences" ? "Experience" :
+                     reward.category === "discounts" ? "Airtime / Data" :
+                     reward.category}
                   </Badge>
                 </div>
                 
@@ -207,7 +243,8 @@ export default function Rewards() {
                 </Button>
               </CardContent>
             </Card>
-          ))}
+            );
+          })}
         </div>
       )}
 
