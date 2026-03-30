@@ -229,7 +229,7 @@ export default function EmailRegistration() {
               )}
             </Button>
 
-            <div className="text-center">
+            <div className="text-center space-y-2">
               <Button
                 type="button"
                 variant="ghost"
@@ -242,6 +242,19 @@ export default function EmailRegistration() {
                   : "Already have an account? Sign in"
                 }
               </Button>
+
+              {isLogin && (
+                <div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => setLocation("/forgot-password")}
+                    className="text-sm text-[#3C3C3B]/60 hover:text-[#3C3C3B]"
+                  >
+                    Forgot your password?
+                  </Button>
+                </div>
+              )}
             </div>
           </form>
 

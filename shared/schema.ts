@@ -377,6 +377,19 @@ export type InsertUserSession = typeof userSessions.$inferInsert;
 export type EarningRule = typeof earningRules.$inferSelect;
 export type InsertEarningRule = typeof earningRules.$inferInsert;
 
+// Password reset tokens
+export const passwordResetTokens = pgTable("password_reset_tokens", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  token: varchar("token").notNull().unique(),
+  expiresAt: timestamp("expires_at").notNull(),
+  used: boolean("used").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
+export type InsertPasswordResetToken = typeof passwordResetTokens.$inferInsert;
+
 // Validation schemas for enterprise features
 export const insertCampaignSchema = createInsertSchema(campaigns).omit({
   id: true,

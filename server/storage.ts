@@ -11,6 +11,7 @@ import {
   adminUsers,
   systemConfig,
   auditLogs,
+  passwordResetTokens,
   type User,
   type UpsertUser,
   type Reward,
@@ -31,6 +32,7 @@ import {
   type InsertEarningRule,
   type AdminUser,
   type InsertAdminUser,
+  type PasswordResetToken,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, sql, and, gte, lte } from "drizzle-orm";
@@ -126,6 +128,12 @@ export interface IStorage {
   }>;
   deactivateUser(userId: string): Promise<void>;
   softDeactivateReward(rewardId: string): Promise<void>;
+
+  // Password reset
+  createPasswordResetToken(userId: string): Promise<string>;
+  getPasswordResetToken(token: string): Promise<PasswordResetToken | undefined>;
+  markPasswordResetTokenUsed(token: string): Promise<void>;
+  updateUserPassword(userId: string, hashedPassword: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -692,6 +700,46 @@ export class DatabaseStorage implements IStorage {
       .update(rewards)
       .set({ isActive: false, updatedAt: new Date() })
       .where(eq(rewards.id, rewardId));
+  }
+
+  async createPasswordResetToken(userId: string): Promise<string> {
+    const crypto = await import("crypto");
+    const token = crypto.randomBytes(32).toString("hex");
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour expiry
+
+    await db.delete(passwordResetTokens).where(eq(passwordResetTokens.userId, userId));
+
+    await db.insert(passwordResetTokens).values({
+      userId,
+      token,
+      expiresAt,
+      used: false,
+    });
+
+    return token;
+  }
+
+  async getPasswordResetToken(token: string): Promise<PasswordResetToken | undefined> {
+    const [record] = await db
+      .select()
+      .from(passwordResetTokens)
+      .where(eq(passwordResetTokens.token, token))
+      .limit(1);
+    return record;
+  }
+
+  async markPasswordResetTokenUsed(token: string): Promise<void> {
+    await db
+      .update(passwordResetTokens)
+      .set({ used: true })
+      .where(eq(passwordResetTokens.token, token));
+  }
+
+  async updateUserPassword(userId: string, hashedPassword: string): Promise<void> {
+    await db
+      .update(users)
+      .set({ password: hashedPassword, updatedAt: new Date() })
+      .where(eq(users.id, userId));
   }
 }
 
