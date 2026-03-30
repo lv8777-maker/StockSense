@@ -15,6 +15,8 @@ import Campaigns from "@/pages/campaigns";
 import SubmitPurchase from "@/pages/SubmitPurchase";
 import NotFound from "@/pages/not-found";
 import EmailRegistration from "@/components/EmailRegistration";
+import ForgotPassword from "@/components/ForgotPassword";
+import ResetPassword from "@/components/ResetPassword";
 
 function ProtectedAdminRoute() {
   const { isAdmin, isLoading } = useAuth();
@@ -46,6 +48,8 @@ function Router() {
         <>
           <Route path="/" component={Landing} />
           <Route path="/email-auth" component={EmailRegistration} />
+          <Route path="/forgot-password" component={ForgotPassword} />
+          <Route path="/reset-password" component={ResetPassword} />
         </>
       ) : (
         <>
