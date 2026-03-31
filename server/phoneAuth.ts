@@ -76,16 +76,9 @@ export async function setupPhoneAuth(app: Express) {
 
       // Plan to points mapping for welcome bonus
       const planPointsMapping: Record<string, number> = {
-        'Essential': 100,
-        'Core': 100,
-        'Plus': 200,
-        'Prime': 200,
-        'Deluxe': 300,
-        'Elite': 300,
-        'Bronze': 500,
-        'Silver': 500,
-        'Gold': 500,
-        'Platinum': 500,
+        'Prepaid': 100,
+        'Contract': 200,
+        'SME': 300,
       };
 
       // Check if user exists or create new user
