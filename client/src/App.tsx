@@ -17,6 +17,7 @@ import NotFound from "@/pages/not-found";
 import EmailRegistration from "@/components/EmailRegistration";
 import ForgotPassword from "@/components/ForgotPassword";
 import ResetPassword from "@/components/ResetPassword";
+import LogoHeader from "@/components/LogoHeader";
 
 function ProtectedAdminRoute() {
   const { isAdmin, isLoading } = useAuth();
@@ -73,6 +74,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
+        <LogoHeader />
         <Router />
       </TooltipProvider>
     </QueryClientProvider>
