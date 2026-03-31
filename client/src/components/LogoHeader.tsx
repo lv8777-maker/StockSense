@@ -5,22 +5,21 @@ export default function LogoHeader() {
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        padding: "10px 32px",
+        padding: "8px 40px",
         backgroundColor: "#ffffff",
         borderBottom: "1px solid #e5e7eb",
-        boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
-        fontFamily: "ui-sans-serif, system-ui, sans-serif",
+        boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
       }}
     >
       <img
         src="/maverick-logo.png"
         alt="Maverick Telecommunication"
-        style={{ height: "44px", objectFit: "contain" }}
+        style={{ height: "48px", objectFit: "contain" }}
       />
       <img
         src="/mtn-logo.png"
         alt="MTN"
-        style={{ height: "44px", objectFit: "contain" }}
+        style={{ height: "48px", objectFit: "contain" }}
       />
     </header>
   );
