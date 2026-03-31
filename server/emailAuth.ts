@@ -29,15 +29,7 @@ export async function setupEmailAuth(app: Express) {
       // Hash password using bcrypt (10 salt rounds for security)
       const hashedPassword = await bcrypt.hash(password, 10);
 
-      // Welcome points based on selected plan
-      const planPointsMapping: Record<string, number> = {
-        'Prepaid': 100,
-        'Contract': 200,
-        'SME': 300,
-      };
-      const welcomePoints = (currentPlan && planPointsMapping[currentPlan]) ? planPointsMapping[currentPlan] : 100;
-
-      // Create new user with hashed password and plan
+      // Create new user - always starts as Maverick Starter regardless of plan
       const user = await storage.createUserWithEmail({
         firstName,
         lastName,
@@ -46,15 +38,13 @@ export async function setupEmailAuth(app: Express) {
         ...(currentPlan ? { currentPlan } : {})
       });
 
-      // Award welcome bonus via transaction (this will update user's totalPoints)
+      // Award flat 500-point welcome bonus to all new members
       await storage.createTransaction({
         userId: user.id,
         type: 'earning',
-        description: currentPlan
-          ? `Welcome to Maverick Loyalty! Plan selection bonus for ${currentPlan}`
-          : 'Welcome to Maverick Loyalty!',
+        description: 'Welcome to Maverick Loyalty! Sign-up bonus.',
         amount: "0.00",
-        pointsEarned: welcomePoints,
+        pointsEarned: 500,
         pointsSpent: 0,
         status: 'completed',
         orderId: `WELCOME-${user.id.substring(0, 8)}`,

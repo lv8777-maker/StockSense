@@ -207,14 +207,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUserWithEmail(userData: { email: string; password: string; firstName: string; lastName: string; currentPlan?: string }): Promise<User> {
-    const planTierMapping: Record<string, string> = {
-      'Prepaid': 'starter',
-      'Contract': 'explorer',
-      'SME': 'champion',
-    };
-    const membershipTier = (userData.currentPlan && planTierMapping[userData.currentPlan])
-      ? planTierMapping[userData.currentPlan]
-      : 'starter';
+    // All new members start at Starter tier — tier progresses via receipt scanning
+    const membershipTier = 'starter';
 
     const [newUser] = await db
       .insert(users)

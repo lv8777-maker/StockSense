@@ -93,7 +93,7 @@ export default function PlanUpgrade({ currentPlan, currentTier, currentPoints = 
             <SelectContent>
               {availableUpgrades.map((plan) => (
                 <SelectItem key={plan.value} value={plan.value}>
-                  {plan.label} - {plan.tier}
+                  {plan.label}
                 </SelectItem>
               ))}
             </SelectContent>
