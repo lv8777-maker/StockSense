@@ -11,7 +11,7 @@ export interface TierInfo {
 
 export const planToTierMapping: Record<string, TierInfo> = {
   // Maverick Starter Tier
-  'Essential': {
+  'Prepaid': {
     tier: 'starter',
     displayName: 'Maverick Starter',
     points: 100,
@@ -19,17 +19,9 @@ export const planToTierMapping: Record<string, TierInfo> = {
     color: '#8B4513',
     icon: 'star'
   },
-  'Core': {
-    tier: 'starter',
-    displayName: 'Maverick Starter',
-    points: 100,
-    benefits: ['Basic rewards access', 'Essential support'],
-    color: '#8B4513',
-    icon: 'star'
-  },
-  
+
   // Maverick Explorer Tier
-  'Plus': {
+  'Contract': {
     tier: 'explorer',
     displayName: 'Maverick Explorer',
     points: 200,
@@ -37,17 +29,9 @@ export const planToTierMapping: Record<string, TierInfo> = {
     color: '#C0C0C0',
     icon: 'compass'
   },
-  'Prime': {
-    tier: 'explorer',
-    displayName: 'Maverick Explorer',
-    points: 200,
-    benefits: ['Enhanced rewards', 'Priority customer service', 'Exclusive monthly offers', 'Data rollover'],
-    color: '#C0C0C0',
-    icon: 'compass'
-  },
-  
+
   // Maverick Champion Tier
-  'Deluxe': {
+  'SME': {
     tier: 'champion',
     displayName: 'Maverick Champion',
     points: 300,
@@ -55,48 +39,6 @@ export const planToTierMapping: Record<string, TierInfo> = {
     color: '#FFD700',
     icon: 'trophy'
   },
-  'Elite': {
-    tier: 'champion',
-    displayName: 'Maverick Champion',
-    points: 300,
-    benefits: ['Premium rewards catalog', 'VIP customer service', 'Free device upgrades', 'International roaming discounts'],
-    color: '#FFD700',
-    icon: 'trophy'
-  },
-  
-  // Maverick Elite Tier
-  'Bronze': {
-    tier: 'elite',
-    displayName: 'Maverick Elite',
-    points: 500,
-    benefits: ['Platinum-level rewards', 'Personal account manager', 'Concierge services', 'Exclusive event access'],
-    color: '#CD7F32',
-    icon: 'crown'
-  },
-  'Silver': {
-    tier: 'elite',
-    displayName: 'Maverick Elite',
-    points: 500,
-    benefits: ['Platinum-level rewards', 'Personal account manager', 'Concierge services', 'Exclusive event access'],
-    color: '#C0C0C0',
-    icon: 'crown'
-  },
-  'Gold': {
-    tier: 'elite',
-    displayName: 'Maverick Elite',
-    points: 500,
-    benefits: ['Platinum-level rewards', 'Personal account manager', 'Concierge services', 'Exclusive event access'],
-    color: '#FFD700',
-    icon: 'crown'
-  },
-  'Platinum': {
-    tier: 'elite',
-    displayName: 'Maverick Elite',
-    points: 500,
-    benefits: ['Platinum-level rewards', 'Personal account manager', 'Concierge services', 'Exclusive event access'],
-    color: '#E5E4E2',
-    icon: 'crown'
-  }
 };
 
 export const tierDisplayNames = {
@@ -132,21 +74,7 @@ export function getTierFromPlan(plan: string): TierInfo {
 }
 
 export const availablePlans = [
-  // Starter tier plans
-  { value: 'Essential', label: 'Essential Plan', tier: 'Maverick Starter' },
-  { value: 'Core', label: 'Core Plan', tier: 'Maverick Starter' },
-  
-  // Explorer tier plans
-  { value: 'Plus', label: 'Plus Plan', tier: 'Maverick Explorer' },
-  { value: 'Prime', label: 'Prime Plan', tier: 'Maverick Explorer' },
-  
-  // Champion tier plans
-  { value: 'Deluxe', label: 'Deluxe Plan', tier: 'Maverick Champion' },
-  { value: 'Elite', label: 'Elite Plan', tier: 'Maverick Champion' },
-  
-  // Elite tier plans
-  { value: 'Bronze', label: 'MTN Sky Bronze', tier: 'Maverick Elite' },
-  { value: 'Silver', label: 'MTN Sky Silver', tier: 'Maverick Elite' },
-  { value: 'Gold', label: 'MTN Sky Gold', tier: 'Maverick Elite' },
-  { value: 'Platinum', label: 'MTN Sky Platinum', tier: 'Maverick Elite' },
+  { value: 'Prepaid', label: 'Prepaid', tier: 'Maverick Starter' },
+  { value: 'Contract', label: 'Contract', tier: 'Maverick Explorer' },
+  { value: 'SME', label: 'SME', tier: 'Maverick Champion' },
 ];
