@@ -18,6 +18,7 @@ import accessoryImg from "@assets/accessory_reward.jpeg";
 import movieTicketImg from "@assets/movie_ticket.jpeg";
 import fuelCreditImg from "@assets/fuel_credit.jpeg";
 import groceryImg from "@assets/grocery_voucher.jpeg";
+import weekendImg from "@assets/weekend_experience.jpeg";
 import type { Reward } from "@shared/schema";
 import Navbar from "@/components/Navbar";
 
@@ -123,6 +124,7 @@ export default function Rewards() {
     if (n.includes("movie") || n.includes("ticket")) return movieTicketImg;
     if (n.includes("fuel") || n.includes("petrol")) return fuelCreditImg;
     if (n.includes("grocery") || n.includes("checkers") || n.includes("woolworth")) return groceryImg;
+    if (n.includes("weekend") || n.includes("getaway")) return weekendImg;
     return null;
   };
 
