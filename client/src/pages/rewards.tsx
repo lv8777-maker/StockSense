@@ -13,6 +13,7 @@ import { Gift, Coins, Award, ShoppingCart, AlertCircle, Coffee, Utensils, Clappe
 import cappuccinoImg from "@assets/WhatsApp_Image_2026-03-31_at_16.00.51_1774997016360.jpeg";
 import spaImg from "@assets/spa_wellness.jpeg";
 import healthyLunchImg from "@assets/WhatsApp_Image_2026-03-31_at_16.00.49_1774997498331.jpeg";
+import airtimeImg from "@assets/WhatsApp_Image_2026-03-31_at_16.00.50_1774997586164.jpeg";
 import type { Reward } from "@shared/schema";
 import Navbar from "@/components/Navbar";
 
@@ -113,6 +114,7 @@ export default function Rewards() {
     if (n.includes("cappuccino")) return cappuccinoImg;
     if (n.includes("spa") || n.includes("wellness")) return spaImg;
     if (n.includes("lunch") || n.includes("healthy")) return healthyLunchImg;
+    if (n.includes("airtime") || n.includes("data")) return airtimeImg;
     return null;
   };
 
