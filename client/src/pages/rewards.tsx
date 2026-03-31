@@ -105,6 +105,12 @@ export default function Rewards() {
     }
   };
 
+  const getRewardImage = (name: string): string | null => {
+    const n = name.toLowerCase();
+    if (n.includes("cappuccino")) return "/rewards/cappuccino.jpeg";
+    return null;
+  };
+
   const filteredRewards = selectedCategory === "all" 
     ? rewards.filter((reward: Reward) => reward.isActive)
     : rewards.filter((reward: Reward) => reward.category === selectedCategory && reward.isActive);
@@ -192,11 +198,22 @@ export default function Rewards() {
           {filteredRewards.map((reward: Reward) => {
             const Icon = getRewardIcon(reward.name, reward.category ?? "");
             const gradientClass = getCategoryColor(reward.category ?? "");
+            const rewardImage = getRewardImage(reward.name);
             return (
             <Card key={reward.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-              <div className={`h-44 bg-gradient-to-br ${gradientClass} flex items-center justify-center`}>
-                <Icon className="h-16 w-16 text-white drop-shadow-sm" />
-              </div>
+              {rewardImage ? (
+                <div className="h-44 overflow-hidden">
+                  <img
+                    src={rewardImage}
+                    alt={reward.name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ) : (
+                <div className={`h-44 bg-gradient-to-br ${gradientClass} flex items-center justify-center`}>
+                  <Icon className="h-16 w-16 text-white drop-shadow-sm" />
+                </div>
+              )}
               <CardContent className="p-6">
                 <div className="flex justify-between items-start mb-2">
                   <h3 className="font-semibold text-lg text-gray-900 leading-snug pr-2" data-testid={`reward-title-${reward.id}`}>
