@@ -17,13 +17,6 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
-              <div className="w-8 h-8 bg-[#FDC800] rounded-lg flex items-center justify-center">
-                <Smartphone className="h-5 w-5 text-[#3C3C3B]" />
-              </div>
-              <div className="flex flex-col">
-                <h1 className="text-xl font-bold text-[#3C3C3B]">Maverick</h1>
-                <span className="text-xs text-gray-500">Loyalty Program</span>
-              </div>
             </div>
             <div className="flex space-x-2">
               <Link href="/email-auth">
