@@ -10,7 +10,7 @@ export async function setupEmailAuth(app: Express) {
   // Email/password registration endpoint with rate limiting
   app.post("/api/auth/register", authLimiter, async (req, res) => {
     try {
-      const { firstName, lastName, email, password } = req.body;
+      const { firstName, lastName, email, password, currentPlan } = req.body;
       
       if (!firstName || !lastName || !email || !password) {
         return res.status(400).json({ 
@@ -29,22 +29,30 @@ export async function setupEmailAuth(app: Express) {
       // Hash password using bcrypt (10 salt rounds for security)
       const hashedPassword = await bcrypt.hash(password, 10);
 
-      // Default welcome bonus (100 points)
-      const welcomePoints = 100;
+      // Welcome points based on selected plan
+      const planPointsMapping: Record<string, number> = {
+        'Prepaid': 100,
+        'Contract': 200,
+        'SME': 300,
+      };
+      const welcomePoints = (currentPlan && planPointsMapping[currentPlan]) ? planPointsMapping[currentPlan] : 100;
 
-      // Create new user with hashed password (starts with 0 points, no plan required)
+      // Create new user with hashed password and plan
       const user = await storage.createUserWithEmail({
         firstName,
         lastName,
         email,
-        password: hashedPassword
+        password: hashedPassword,
+        ...(currentPlan ? { currentPlan } : {})
       });
 
       // Award welcome bonus via transaction (this will update user's totalPoints)
       await storage.createTransaction({
         userId: user.id,
         type: 'earning',
-        description: 'Welcome to Maverick Loyalty!',
+        description: currentPlan
+          ? `Welcome to Maverick Loyalty! Plan selection bonus for ${currentPlan}`
+          : 'Welcome to Maverick Loyalty!',
         amount: "0.00",
         pointsEarned: welcomePoints,
         pointsSpent: 0,

@@ -207,8 +207,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUserWithEmail(userData: { email: string; password: string; firstName: string; lastName: string; currentPlan?: string }): Promise<User> {
-    // Default to starter tier if no plan provided
-    const defaultTier = 'starter';
+    const planTierMapping: Record<string, string> = {
+      'Prepaid': 'starter',
+      'Contract': 'explorer',
+      'SME': 'champion',
+    };
+    const membershipTier = (userData.currentPlan && planTierMapping[userData.currentPlan])
+      ? planTierMapping[userData.currentPlan]
+      : 'starter';
 
     const [newUser] = await db
       .insert(users)
@@ -219,7 +225,7 @@ export class DatabaseStorage implements IStorage {
         lastName: userData.lastName,
         currentPlan: userData.currentPlan || null,
         totalPoints: 0, // Start with 0 points - welcome bonus added via transaction
-        membershipTier: defaultTier,
+        membershipTier,
         isActive: true,
         emailNotifications: true,
         pushNotifications: false,
