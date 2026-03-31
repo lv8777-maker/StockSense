@@ -115,18 +115,18 @@ export default function Rewards() {
     }
   };
 
-  const getRewardImage = (name: string): string | null => {
+  const getRewardImage = (name: string): { src: string; position: string } | null => {
     const n = name.toLowerCase();
-    if (n.includes("cappuccino")) return cappuccinoImg;
-    if (n.includes("spa") || n.includes("wellness")) return spaImg;
-    if (n.includes("lunch") || n.includes("healthy")) return healthyLunchImg;
-    if (n.includes("airtime") || n.includes("data")) return airtimeImg;
-    if (n.includes("accessory") || n.includes("in-store")) return accessoryImg;
-    if (n.includes("movie") || n.includes("ticket")) return movieTicketImg;
-    if (n.includes("fuel") || n.includes("petrol")) return fuelCreditImg;
-    if (n.includes("grocery") || n.includes("checkers") || n.includes("woolworth")) return groceryImg;
-    if (n.includes("weekend") || n.includes("getaway")) return weekendImg;
-    if (n.includes("gadget") || n.includes("powerbank") || n.includes("bluetooth") || n.includes("speaker")) return miniGadgetImg;
+    if (n.includes("cappuccino")) return { src: cappuccinoImg, position: "object-center" };
+    if (n.includes("spa") || n.includes("wellness")) return { src: spaImg, position: "object-top" };
+    if (n.includes("lunch") || n.includes("healthy")) return { src: healthyLunchImg, position: "object-center" };
+    if (n.includes("airtime") || n.includes("data")) return { src: airtimeImg, position: "object-center" };
+    if (n.includes("accessory") || n.includes("in-store")) return { src: accessoryImg, position: "object-center" };
+    if (n.includes("movie") || n.includes("ticket")) return { src: movieTicketImg, position: "object-center" };
+    if (n.includes("fuel") || n.includes("petrol")) return { src: fuelCreditImg, position: "object-center" };
+    if (n.includes("grocery") || n.includes("checkers") || n.includes("woolworth")) return { src: groceryImg, position: "object-center" };
+    if (n.includes("weekend") || n.includes("getaway")) return { src: weekendImg, position: "object-bottom" };
+    if (n.includes("gadget") || n.includes("powerbank") || n.includes("bluetooth") || n.includes("speaker")) return { src: miniGadgetImg, position: "object-center" };
     return null;
   };
 
@@ -223,9 +223,9 @@ export default function Rewards() {
               {rewardImage ? (
                 <div className="h-44 overflow-hidden">
                   <img
-                    src={rewardImage}
+                    src={rewardImage.src}
                     alt={reward.name}
-                    className="w-full h-full object-cover"
+                    className={`w-full h-full object-cover ${rewardImage.position}`}
                   />
                 </div>
               ) : (
