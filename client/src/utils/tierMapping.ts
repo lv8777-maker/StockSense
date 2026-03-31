@@ -74,7 +74,7 @@ export function getTierFromPlan(plan: string): TierInfo {
 }
 
 export const availablePlans = [
-  { value: 'Prepaid', label: 'Prepaid', tier: 'Maverick Starter' },
-  { value: 'Contract', label: 'Contract', tier: 'Maverick Explorer' },
-  { value: 'SME', label: 'SME', tier: 'Maverick Champion' },
+  { value: 'Prepaid', label: 'Prepaid', tier: '' },
+  { value: 'Contract', label: 'Contract', tier: '' },
+  { value: 'SME', label: 'SME', tier: '' },
 ];

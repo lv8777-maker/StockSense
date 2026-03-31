@@ -74,18 +74,11 @@ export async function setupPhoneAuth(app: Express) {
         });
       }
 
-      // Plan to points mapping for welcome bonus
-      const planPointsMapping: Record<string, number> = {
-        'Prepaid': 100,
-        'Contract': 200,
-        'SME': 300,
-      };
-
       // Check if user exists or create new user
       let user = await storage.getUserByPhone(normalizedPhone);
       
       if (!user) {
-        // Create new user with plan selection (starts with 0 points)
+        // Create new user - always starts as Maverick Starter regardless of plan
         user = await storage.createUserWithPhone({
           phoneNumber: normalizedPhone,
           firstName: firstName || '',
@@ -93,29 +86,23 @@ export async function setupPhoneAuth(app: Express) {
           currentPlan: currentPlan,
         });
 
-        // Award welcome bonus via transaction if plan is selected
-        if (currentPlan) {
-          const welcomePoints = planPointsMapping[currentPlan] || 0;
-          if (welcomePoints > 0) {
-            try {
-              await storage.createTransaction({
-                userId: user.id,
-                type: 'earning' as const,
-                description: `Welcome to Maverick Loyalty! Plan selection bonus for ${currentPlan}`,
-                amount: "0.00",
-                pointsEarned: welcomePoints,
-                pointsSpent: 0,
-                status: 'completed' as const,
-                orderId: `WELCOME-${user.id.substring(0, 8)}`,
-              });
-              
-              // Fetch updated user to get correct points after transaction
-              user = (await storage.getUserByPhone(normalizedPhone))!;
-            } catch (error) {
-              console.error("Error creating welcome transaction:", error);
-              // Don't fail account creation if transaction creation fails
-            }
-          }
+        // Award flat 500-point welcome bonus to all new members
+        try {
+          await storage.createTransaction({
+            userId: user.id,
+            type: 'earning' as const,
+            description: 'Welcome to Maverick Loyalty! Sign-up bonus.',
+            amount: "0.00",
+            pointsEarned: 500,
+            pointsSpent: 0,
+            status: 'completed' as const,
+            orderId: `WELCOME-${user.id.substring(0, 8)}`,
+          });
+          
+          // Fetch updated user to get correct points after transaction
+          user = (await storage.getUserByPhone(normalizedPhone))!;
+        } catch (error) {
+          console.error("Error creating welcome transaction:", error);
         }
       }
 
