@@ -17,9 +17,6 @@ export default function LogoHeader() {
         alt="Maverick Telecommunication"
         style={{ height: "44px", objectFit: "contain" }}
       />
-      <span style={{ fontSize: "15px", fontWeight: "600", color: "#374151" }}>
-        Loyalty Rewards
-      </span>
       <img
         src="/mtn-logo.png"
         alt="MTN"
