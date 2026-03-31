@@ -12,35 +12,6 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-            </div>
-            <div className="flex space-x-2">
-              <Link href="/email-auth">
-                <Button 
-                  className="bg-[#FDC800] hover:bg-[#FDC800]/90 text-[#3C3C3B] font-semibold"
-                  data-testid="button-email-login"
-                >
-                  <Mail className="h-4 w-4 mr-2" />
-                  Email Login
-                </Button>
-              </Link>
-              <Button 
-                onClick={() => setShowPhoneLogin(true)}
-                variant="outline"
-                data-testid="button-phone-login"
-              >
-                <Smartphone className="h-4 w-4 mr-2" />
-                Phone Login
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
-
       {/* Hero Section */}
       <div className="relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
