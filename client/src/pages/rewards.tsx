@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { Gift, Coins, Award, ShoppingCart, AlertCircle, Coffee, Utensils, Clapperboard, ShoppingBasket, Fuel, Smartphone, Watch, Cpu, Sparkles, Compass } from "lucide-react";
 import cappuccinoImg from "@assets/WhatsApp_Image_2026-03-31_at_16.00.51_1774997016360.jpeg";
-import spaImg from "@assets/WhatsApp_Image_2026-03-31_at_16.00.51_(1)_1774997350715.jpeg";
+import spaImg from "@assets/spa_wellness.jpeg";
 import type { Reward } from "@shared/schema";
 import Navbar from "@/components/Navbar";
 
