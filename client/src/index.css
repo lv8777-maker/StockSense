@@ -54,6 +54,11 @@
   --maverick-dark-gray: #3C3C3B;
   --maverick-bright-yellow: #FDC800;
   --maverick-light-gray: #A7A9AC;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+body {
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
 /* Custom Maverick utility classes */
