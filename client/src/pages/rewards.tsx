@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Gift, Coins, Award, ShoppingCart, AlertCircle, Coffee, Utensils, Clapperboard, ShoppingBasket, Fuel, Smartphone, Watch, Cpu, Sparkles, Compass } from "lucide-react";
+import cappuccinoImg from "@assets/WhatsApp_Image_2026-03-31_at_16.00.51_1774997016360.jpeg";
 import type { Reward } from "@shared/schema";
 import Navbar from "@/components/Navbar";
 
@@ -107,7 +108,7 @@ export default function Rewards() {
 
   const getRewardImage = (name: string): string | null => {
     const n = name.toLowerCase();
-    if (n.includes("cappuccino")) return "/rewards/cappuccino.jpeg";
+    if (n.includes("cappuccino")) return cappuccinoImg;
     return null;
   };
 
