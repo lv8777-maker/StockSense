@@ -5,9 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Mail, User, Crown } from "lucide-react";
+import { availablePlans } from "@/utils/tierMapping";
 
 export default function EmailRegistration() {
   const [formData, setFormData] = useState({
@@ -15,7 +17,8 @@ export default function EmailRegistration() {
     lastName: "",
     email: "",
     password: "",
-    confirmPassword: ""
+    confirmPassword: "",
+    currentPlan: ""
   });
   const [isLogin, setIsLogin] = useState(true);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -69,7 +72,8 @@ export default function EmailRegistration() {
     if (!isLogin) {
       if (!formData.firstName) newErrors.firstName = "First name is required";
       if (!formData.lastName) newErrors.lastName = "Last name is required";
-      
+      if (!formData.currentPlan) newErrors.currentPlan = "Please select your current plan";
+
       if (formData.password !== formData.confirmPassword) {
         newErrors.confirmPassword = "Passwords do not match";
       }
@@ -89,7 +93,8 @@ export default function EmailRegistration() {
           firstName: formData.firstName,
           lastName: formData.lastName,
           email: formData.email,
-          password: formData.password
+          password: formData.password,
+          currentPlan: formData.currentPlan
         };
 
     authMutation.mutate(submitData);
@@ -206,6 +211,32 @@ export default function EmailRegistration() {
                 />
                 {errors.confirmPassword && (
                   <p className="text-red-500 text-xs">{errors.confirmPassword}</p>
+                )}
+              </div>
+            )}
+
+            {!isLogin && (
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">
+                  Select Your Current Plan *
+                </Label>
+                <Select
+                  value={formData.currentPlan}
+                  onValueChange={(value) => setFormData({...formData, currentPlan: value})}
+                >
+                  <SelectTrigger className={errors.currentPlan ? "border-red-500" : ""} data-testid="select-plan">
+                    <SelectValue placeholder="Choose your plan" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availablePlans.map((plan) => (
+                      <SelectItem key={plan.value} value={plan.value}>
+                        {plan.label} - {plan.tier}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.currentPlan && (
+                  <p className="text-red-500 text-xs">{errors.currentPlan}</p>
                 )}
               </div>
             )}
