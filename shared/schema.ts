@@ -113,14 +113,16 @@ export const redemptions = pgTable("redemptions", {
 // MTN contract packages catalogue
 export const packages = pgTable("packages", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  name: varchar("name").notNull().unique(),
+  name: varchar("name").notNull(), // canonical package name without duration suffix
   network: varchar("network").default('MTN'),
   contractDuration: varchar("contract_duration").notNull(), // "24 Months" or "36 Months"
   pointsAwarded: integer("points_awarded").notNull(),
   status: varchar("status").default('active'), // active, inactive
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => [
+  index("packages_name_duration_unique").on(table.name, table.contractDuration),
+]);
 
 // Personalized offers
 export const offers = pgTable("offers", {
