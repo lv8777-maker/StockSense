@@ -256,8 +256,8 @@ export default function SubmitPurchase() {
           <CardContent className="space-y-3 text-sm">
             <div>
               <h4 className="font-semibold text-gray-900 mb-1">📱 Airtime Purchase</h4>
-              <p className="text-gray-600">1 point per R1 spent (minimum R100)</p>
-              <p className="text-xs text-gray-500">Example: R250 airtime = 250 points</p>
+              <p className="text-gray-600">2 points per R1 spent (minimum R100)</p>
+              <p className="text-xs text-gray-500">Example: R250 airtime = 500 points</p>
             </div>
             <div>
               <h4 className="font-semibold text-gray-900 mb-1">🎧 Accessory Purchase</h4>
