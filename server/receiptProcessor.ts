@@ -1,4 +1,7 @@
 import Tesseract from 'tesseract.js';
+import { db } from './db';
+import { packages } from '@shared/schema';
+import { eq } from 'drizzle-orm';
 
 export interface ProcessedReceipt {
   purchaseType: string;
@@ -9,19 +12,46 @@ export interface ProcessedReceipt {
   description: string;
 }
 
-// Plan-based points mapping (same as signup bonus)
-const planToPoints: Record<string, number> = {
-  'Essential': 100,
-  'Core': 100,
-  'Plus': 200,
-  'Prime': 200,
-  'Deluxe': 300,
-  'Elite': 300,
-  'Bronze': 500,
-  'Silver': 500,
-  'Gold': 500,
-  'Platinum': 500,
-};
+/**
+ * Normalize a string for fuzzy receipt matching: lowercase, strip any duration
+ * suffix (24M / 36M / 24 Months / 36 Months), collapse all non-alphanumeric
+ * characters to single spaces, and trim. This makes OCR text and DB names
+ * comparable even with extra spaces, punctuation, or noisy characters.
+ */
+function normalizeForMatch(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/\s+(24m|36m|24\s*months?|36\s*months?)\b/gi, ' ')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+/**
+ * Look up the active MTN packages from the database and find one whose
+ * normalized name appears in the normalized OCR text. Longer names are tried
+ * first so e.g. "Mobile Internet 20GB" wins over "Mobile Internet 2GB".
+ * Fails soft: returns null on any DB error so receipt processing can fall
+ * through to airtime/accessory detection.
+ */
+async function matchPackageInText(ocrText: string): Promise<{ name: string; points: number } | null> {
+  try {
+    const rows = await db.select().from(packages).where(eq(packages.status, 'active'));
+    const ocrNorm = normalizeForMatch(ocrText);
+    const candidates = rows
+      .map(p => ({ name: p.name, cleaned: normalizeForMatch(p.name), points: p.pointsAwarded }))
+      .sort((a, b) => b.cleaned.length - a.cleaned.length);
+
+    for (const c of candidates) {
+      if (c.cleaned && ocrNorm.includes(c.cleaned)) {
+        return { name: c.name, points: c.points };
+      }
+    }
+    return null;
+  } catch (error) {
+    console.error('Package lookup failed; continuing without plan match:', error);
+    return null;
+  }
+}
 
 /**
  * Process receipt image using OCR and calculate points
@@ -40,15 +70,14 @@ export async function processReceiptImage(imagePath: string): Promise<ProcessedR
     let pointsAwarded = 0;
     let description = '';
 
-    // 1. Check for Plan-based purchases
-    for (const [planName, points] of Object.entries(planToPoints)) {
-      if (ocrText.includes(planName.toLowerCase())) {
-        purchaseType = 'plan';
-        detectedPlan = planName;
-        pointsAwarded = points;
-        description = `${planName} plan purchase detected - ${points} points awarded`;
-        return { purchaseType, detectedAmount, detectedPlan, pointsAwarded, ocrText: text, description };
-      }
+    // 1. Check for Plan-based purchases (matched against the MTN packages catalogue)
+    const matched = await matchPackageInText(ocrText);
+    if (matched) {
+      purchaseType = 'plan';
+      detectedPlan = matched.name;
+      pointsAwarded = matched.points;
+      description = `${matched.name} plan purchase detected - ${matched.points} points awarded`;
+      return { purchaseType, detectedAmount, detectedPlan, pointsAwarded, ocrText: text, description };
     }
 
     // 2. Check for Airtime purchase
