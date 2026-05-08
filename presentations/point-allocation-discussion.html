@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Maverick Loyalty — Point Allocation Discussion</title>
+<style>
+  :root {
+    --dark: #3C3C3B;
+    --yellow: #FDC800;
+    --light: #A7A9AC;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: #1a1a1a;
+    color: var(--dark);
+    min-height: 100vh;
+    padding: 40px 20px;
+  }
+  .deck {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+  }
+  .slide {
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 56px 64px;
+    aspect-ratio: 16 / 9;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+    position: relative;
+    overflow: hidden;
+  }
+  .slide::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 6px;
+    background: var(--yellow);
+  }
+  .slide-num {
+    position: absolute;
+    bottom: 24px;
+    right: 32px;
+    font-size: 13px;
+    color: var(--light);
+    font-weight: 500;
+  }
+  .brand {
+    position: absolute;
+    bottom: 24px;
+    left: 32px;
+    font-size: 13px;
+    color: var(--light);
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+  h1 {
+    font-size: 52px;
+    color: var(--dark);
+    line-height: 1.15;
+    margin-bottom: 20px;
+  }
+  h2 {
+    font-size: 36px;
+    color: var(--dark);
+    line-height: 1.2;
+    margin-bottom: 28px;
+    border-bottom: 3px solid var(--yellow);
+    padding-bottom: 14px;
+    display: inline-block;
+  }
+  h3 {
+    font-size: 22px;
+    color: var(--dark);
+    margin: 16px 0 12px;
+  }
+  p, li {
+    font-size: 19px;
+    color: #4a4a4a;
+    line-height: 1.55;
+  }
+  ul { padding-left: 22px; margin-bottom: 16px; }
+  li { margin-bottom: 8px; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 18px 0;
+    font-size: 17px;
+  }
+  th, td {
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  th {
+    background: var(--yellow);
+    color: var(--dark);
+    font-weight: 700;
+  }
+  tr:hover td { background: #fafafa; }
+  .subtitle {
+    font-size: 22px;
+    color: var(--light);
+    margin-top: 12px;
+  }
+  .center {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    flex: 1;
+  }
+  .badge {
+    display: inline-block;
+    background: var(--yellow);
+    color: var(--dark);
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-weight: 700;
+    font-size: 14px;
+    margin-bottom: 20px;
+    letter-spacing: 1px;
+  }
+  .alert {
+    background: #fef3c7;
+    border-left: 5px solid var(--yellow);
+    padding: 18px 22px;
+    border-radius: 6px;
+    margin: 18px 0;
+    font-size: 17px;
+  }
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+  }
+  .stat-box {
+    background: #f9fafb;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 24px;
+    text-align: center;
+  }
+  .stat-num {
+    font-size: 42px;
+    font-weight: 800;
+    color: var(--dark);
+    margin-bottom: 6px;
+  }
+  .stat-label {
+    font-size: 14px;
+    color: var(--light);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .conclusion {
+    background: var(--dark);
+    color: #fff;
+    padding: 22px 28px;
+    border-radius: 10px;
+    font-size: 20px;
+    font-weight: 600;
+    margin-top: 18px;
+    line-height: 1.45;
+  }
+  .conclusion strong { color: var(--yellow); }
+</style>
+</head>
+<body>
+<div class="deck">
+
+  <!-- SLIDE 1 — Title -->
+  <section class="slide">
+    <div class="center">
+      <span class="badge">INTERNAL REVIEW</span>
+      <h1>Point Allocation &amp;<br>Redemption Mismatch</h1>
+      <p class="subtitle">Why the current earning rate prevents customers from redeeming a single cup of coffee.</p>
+    </div>
+    <div class="brand">MAVERICK LOYALTY</div>
+    <div class="slide-num">1 / 4</div>
+  </section>
+
+  <!-- SLIDE 2 — Current point allocations -->
+  <section class="slide">
+    <h2>How Customers Currently Earn Points</h2>
+    <div class="grid-2">
+      <div>
+        <h3>Sign-up bonus</h3>
+        <ul>
+          <li><strong>500 points</strong> — flat, every new client</li>
+        </ul>
+        <h3>Airtime purchase</h3>
+        <ul>
+          <li><strong>1 point per R1</strong> spent</li>
+          <li>Minimum spend: R100</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Accessories (tiered)</h3>
+        <table>
+          <tr><th>Spend</th><th>Points</th></tr>
+          <tr><td>R500 – R999</td><td>100</td></tr>
+          <tr><td>R1 000 – R1 999</td><td>250</td></tr>
+          <tr><td>R2 000+</td><td>500</td></tr>
+        </table>
+        <h3>Plan detected on receipt</h3>
+        <ul>
+          <li>Entry plans: 100 pts</li>
+          <li>Top plans: up to 500 pts</li>
+        </ul>
+      </div>
+    </div>
+    <div class="brand">MAVERICK LOYALTY</div>
+    <div class="slide-num">2 / 4</div>
+  </section>
+
+  <!-- SLIDE 3 — The Mismatch -->
+  <section class="slide">
+    <h2>The Problem: A Cup of Coffee Costs 5 294 Points</h2>
+    <p>The cheapest reward in the catalogue — a <strong>Cappuccino (~R45)</strong> — is priced at <strong>5 294 points</strong> using the R ÷ 0.0085 conversion.</p>
+    <h3 style="margin-top:24px;">What a customer must spend to earn one cup:</h3>
+    <table>
+      <tr><th>Activity</th><th>Required to earn 5 294 pts</th></tr>
+      <tr><td>Airtime (1 pt / R1)</td><td><strong>R5 294 in airtime</strong></td></tr>
+      <tr><td>Top-tier plan detection (500 pts)</td><td>~11 plan purchases</td></tr>
+      <tr><td>Top-tier accessory receipts (R2 000+ = 500 pts)</td><td>~11 receipts of R2 000+</td></tr>
+    </table>
+    <div class="alert">After the 500-point sign-up bonus, a new client still needs to spend roughly <strong>R4 800 in airtime</strong> just to redeem a single cappuccino.</div>
+    <div class="brand">MAVERICK LOYALTY</div>
+    <div class="slide-num">3 / 4</div>
+  </section>
+
+  <!-- SLIDE 4 — Recommendation -->
+  <section class="slide">
+    <h2>Recommendation</h2>
+    <p>Increase the airtime earning rate to bring rewards within reach without devaluing the catalogue.</p>
+    <div class="grid-2" style="margin-top:24px;">
+      <div class="stat-box">
+        <div class="stat-num">10×</div>
+        <div class="stat-label">10 pts per R1 airtime</div>
+        <p style="margin-top:10px;font-size:15px;">Cheapest reward reachable after <strong>~R530</strong> in airtime spend.</p>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num">20×</div>
+        <div class="stat-label">20 pts per R1 airtime</div>
+        <p style="margin-top:10px;font-size:15px;">Cheapest reward reachable after <strong>~R250</strong> in airtime spend.</p>
+      </div>
+    </div>
+    <div class="conclusion">Decision needed: pick a new earning rate (suggested <strong>10–20 pts / R1</strong>) so the loyalty programme actually rewards everyday customer behaviour.</div>
+    <div class="brand">MAVERICK LOYALTY</div>
+    <div class="slide-num">4 / 4</div>
+  </section>
+
+</div>
+</body>
+</html>
