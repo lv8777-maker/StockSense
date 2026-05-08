@@ -22,8 +22,7 @@ import path from "path";
 import fs from "fs";
 import { processReceiptImage, isValidReceiptFile } from "./receiptProcessor";
 import {
-  extractInvoiceText,
-  parseInvoiceText,
+  extractAndParseInvoice,
   namesMatch,
   findPackage,
   isValidInvoiceFile,
@@ -301,12 +300,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const filePath = req.file.path;
 
-      // 1. Extract & parse invoice
+      // 1. Extract & parse invoice (pdf-parse first, OCR fallback for scanned PDFs)
       let parsed;
       try {
         const buffer = fs.readFileSync(filePath);
-        const text = await extractInvoiceText(buffer);
-        parsed = parseInvoiceText(text);
+        const result = await extractAndParseInvoice(buffer);
+        parsed = result.parsed;
       } catch (err) {
         console.error('PDF extraction failed:', err);
         cleanup(filePath);
