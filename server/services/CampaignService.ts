@@ -177,7 +177,8 @@ export class CampaignService {
           let bonusPoints = 0;
           
           if (rules.pointsMultiplier) {
-            // Assuming base rate of 1 point per rand
+            // Generic multiplier baseline (1 pt/R1) for non-airtime categories.
+            // Airtime receipts use receiptProcessor's 2 pts/R1 directly and bypass this path.
             bonusPoints = Math.floor(transactionAmount * (rules.pointsMultiplier - 1));
           }
 

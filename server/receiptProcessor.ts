@@ -72,9 +72,9 @@ export async function processReceiptImage(imagePath: string): Promise<ProcessedR
         }
       }
 
-      // Calculate points: 1 point per R1 (minimum R100)
+      // Calculate points: 2 points per R1 (minimum R100)
       if (detectedAmount && detectedAmount >= 100) {
-        pointsAwarded = Math.floor(detectedAmount);
+        pointsAwarded = Math.floor(detectedAmount) * 2;
         description = `Airtime purchase of R${detectedAmount.toFixed(2)} - ${pointsAwarded} points awarded`;
       } else {
         description = `Airtime purchase detected but amount less than R100 minimum`;
