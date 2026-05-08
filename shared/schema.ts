@@ -4,6 +4,7 @@ import {
   jsonb,
   pgTable,
   timestamp,
+  uniqueIndex,
   varchar,
   integer,
   text,
@@ -45,9 +46,27 @@ export const users = pgTable("users", {
   pushNotifications: boolean("push_notifications").default(false),
   marketingMessages: boolean("marketing_messages").default(true),
   pointsExpiryDate: timestamp("points_expiry_date"), // 12 months from last points-earning activity
+  isVerified: boolean("is_verified").default(false), // email + phone verified together via emailed code
+  emailVerifiedAt: timestamp("email_verified_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+// Email verification codes (used to confirm both email AND phone at signup)
+export const emailVerifications = pgTable("email_verifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  email: varchar("email").notNull(),
+  phoneNumber: varchar("phone_number").notNull(),
+  codeHash: varchar("code_hash").notNull(),
+  attempts: integer("attempts").notNull().default(0),
+  expiresAt: timestamp("expires_at").notNull(),
+  consumed: boolean("consumed").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type EmailVerification = typeof emailVerifications.$inferSelect;
+export type InsertEmailVerification = typeof emailVerifications.$inferInsert;
 
 // Rewards catalog
 export const rewards = pgTable("rewards", {
@@ -74,10 +93,14 @@ export const transactions = pgTable("transactions", {
   pointsEarned: integer("points_earned").default(0),
   pointsSpent: integer("points_spent").default(0),
   description: text("description").notNull(),
-  orderId: varchar("order_id"), // external reference
+  orderId: varchar("order_id"), // external reference; unique per user when set (idempotency for bonus awards)
   status: varchar("status").default('completed'), // pending, completed, failed, refunded
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => [
+  uniqueIndex("transactions_user_orderid_unique")
+    .on(table.userId, table.orderId)
+    .where(sql`${table.orderId} IS NOT NULL`),
+]);
 
 // Receipt uploads for purchase verification
 export const receiptUploads = pgTable("receipt_uploads", {

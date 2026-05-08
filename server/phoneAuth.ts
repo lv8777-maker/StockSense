@@ -106,7 +106,9 @@ export async function setupPhoneAuth(app: Express) {
         }
       }
 
-      // Create session
+      // Create session — phone-auth users are implicitly verified (number is the
+      // login factor itself), so we mark isVerified true so the verification
+      // gate doesn't block them.
       (req as any).session.user = {
         id: user.id,
         phoneNumber: user.phoneNumber,
@@ -115,6 +117,7 @@ export async function setupPhoneAuth(app: Express) {
         currentPlan: user.currentPlan,
         totalPoints: user.totalPoints,
         membershipTier: user.membershipTier,
+        isVerified: true,
       };
 
       // Explicitly save session before responding

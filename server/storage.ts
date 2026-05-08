@@ -13,6 +13,8 @@ import {
   systemConfig,
   auditLogs,
   passwordResetTokens,
+  emailVerifications,
+  type EmailVerification,
   type User,
   type UpsertUser,
   type Reward,
@@ -55,8 +57,16 @@ export interface IStorage {
   
   // Email authentication methods
   getUserByEmail(email: string): Promise<User | undefined>;
-  createUserWithEmail(userData: { email: string; password: string; firstName: string; lastName: string; currentPlan?: string }): Promise<User>;
+  createUserWithEmail(userData: { email: string; password: string; firstName: string; lastName: string; phoneNumber: string; currentPlan?: string }): Promise<User>;
   validateUserPassword(email: string, password: string): Promise<User | null>;
+
+  // Email + phone verification
+  createEmailVerification(data: { userId: string; email: string; phoneNumber: string; codeHash: string; expiresAt: Date }): Promise<EmailVerification>;
+  getActiveEmailVerification(userId: string): Promise<EmailVerification | undefined>;
+  incrementVerificationAttempts(id: string): Promise<void>;
+  markVerificationConsumed(id: string): Promise<void>;
+  markUserVerified(userId: string): Promise<User>;
+  invalidateUserVerifications(userId: string): Promise<void>;
   
   // Plan upgrade methods
   upgradePlan(userId: string, newPlan: string): Promise<{ user: User; pointsEarned: number }>;
@@ -214,7 +224,7 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async createUserWithEmail(userData: { email: string; password: string; firstName: string; lastName: string; currentPlan?: string }): Promise<User> {
+  async createUserWithEmail(userData: { email: string; password: string; firstName: string; lastName: string; phoneNumber: string; currentPlan?: string }): Promise<User> {
     // All new members start at Starter tier — tier progresses via receipt scanning
     const membershipTier = 'starter';
 
@@ -225,17 +235,75 @@ export class DatabaseStorage implements IStorage {
         password: userData.password,
         firstName: userData.firstName,
         lastName: userData.lastName,
+        phoneNumber: userData.phoneNumber,
         currentPlan: userData.currentPlan || null,
         totalPoints: 0, // Start with 0 points - welcome bonus added via transaction
         membershipTier,
         isActive: true,
+        isVerified: false, // must verify email + phone before access is granted
         emailNotifications: true,
         pushNotifications: false,
         marketingMessages: true,
       })
       .returning();
-    
+
     return newUser;
+  }
+
+  async createEmailVerification(data: { userId: string; email: string; phoneNumber: string; codeHash: string; expiresAt: Date }): Promise<EmailVerification> {
+    // Invalidate any pending verifications for this user before issuing a new one.
+    await this.invalidateUserVerifications(data.userId);
+    const [row] = await db
+      .insert(emailVerifications)
+      .values({
+        userId: data.userId,
+        email: data.email,
+        phoneNumber: data.phoneNumber,
+        codeHash: data.codeHash,
+        expiresAt: data.expiresAt,
+      })
+      .returning();
+    return row;
+  }
+
+  async getActiveEmailVerification(userId: string): Promise<EmailVerification | undefined> {
+    const [row] = await db
+      .select()
+      .from(emailVerifications)
+      .where(and(eq(emailVerifications.userId, userId), eq(emailVerifications.consumed, false)))
+      .orderBy(desc(emailVerifications.createdAt))
+      .limit(1);
+    return row;
+  }
+
+  async incrementVerificationAttempts(id: string): Promise<void> {
+    await db
+      .update(emailVerifications)
+      .set({ attempts: sql`${emailVerifications.attempts} + 1` })
+      .where(eq(emailVerifications.id, id));
+  }
+
+  async markVerificationConsumed(id: string): Promise<void> {
+    await db
+      .update(emailVerifications)
+      .set({ consumed: true })
+      .where(eq(emailVerifications.id, id));
+  }
+
+  async markUserVerified(userId: string): Promise<User> {
+    const [updated] = await db
+      .update(users)
+      .set({ isVerified: true, emailVerifiedAt: new Date(), updatedAt: new Date() })
+      .where(eq(users.id, userId))
+      .returning();
+    return updated;
+  }
+
+  async invalidateUserVerifications(userId: string): Promise<void> {
+    await db
+      .update(emailVerifications)
+      .set({ consumed: true })
+      .where(and(eq(emailVerifications.userId, userId), eq(emailVerifications.consumed, false)));
   }
 
   async validateUserPassword(email: string, password: string): Promise<User | null> {

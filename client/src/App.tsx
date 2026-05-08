@@ -14,6 +14,7 @@ import Admin from "@/pages/admin";
 import Campaigns from "@/pages/campaigns";
 import SubmitPurchase from "@/pages/SubmitPurchase";
 import UploadInvoice from "@/pages/UploadInvoice";
+import VerifyEmail from "@/pages/VerifyEmail";
 import NotFound from "@/pages/not-found";
 import EmailRegistration from "@/components/EmailRegistration";
 import ForgotPassword from "@/components/ForgotPassword";
@@ -42,7 +43,8 @@ function ProtectedAdminRoute() {
 }
 
 function Router() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
+  const needsVerification = isAuthenticated && user && (user as any).isVerified === false;
 
   return (
     <Switch>
@@ -52,6 +54,11 @@ function Router() {
           <Route path="/email-auth" component={EmailRegistration} />
           <Route path="/forgot-password" component={ForgotPassword} />
           <Route path="/reset-password" component={ResetPassword} />
+        </>
+      ) : needsVerification ? (
+        <>
+          <Route path="/verify-email" component={VerifyEmail} />
+          <Route>{() => <Redirect to="/verify-email" />}</Route>
         </>
       ) : (
         <>

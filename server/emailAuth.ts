@@ -4,76 +4,101 @@ import connectPg from "connect-pg-simple";
 import bcrypt from "bcrypt";
 import { storage } from "./storage";
 import { authLimiter, passwordLimiter } from "./rateLimiter";
+import { issueVerificationCode } from "./verificationAuth";
 import type { Express, RequestHandler } from "express";
+
+// Accepts +27XXXXXXXXX or 0XXXXXXXXX, normalises to +27 form.
+function normalisePhone(input: string): string | null {
+  if (!input) return null;
+  const digits = input.replace(/[\s-]/g, '');
+  if (/^\+27\d{9}$/.test(digits)) return digits;
+  if (/^0\d{9}$/.test(digits)) return '+27' + digits.slice(1);
+  return null;
+}
 
 export async function setupEmailAuth(app: Express) {
   // Email/password registration endpoint with rate limiting
   app.post("/api/auth/register", authLimiter, async (req, res) => {
     try {
-      const { firstName, lastName, email, password, currentPlan } = req.body;
-      
-      if (!firstName || !lastName || !email || !password) {
-        return res.status(400).json({ 
-          message: "All fields are required: firstName, lastName, email, password" 
+      const { firstName, lastName, email, password, phoneNumber, currentPlan } = req.body;
+
+      if (!firstName || !lastName || !email || !password || !phoneNumber) {
+        return res.status(400).json({
+          message: "All fields are required: firstName, lastName, email, phoneNumber, password"
         });
       }
 
-      // Check if user already exists
-      const existingUser = await storage.getUserByEmail(email);
-      if (existingUser) {
-        return res.status(400).json({ 
-          message: "An account with this email already exists" 
+      const normalisedPhone = normalisePhone(phoneNumber);
+      if (!normalisedPhone) {
+        return res.status(400).json({
+          message: "Please enter a valid South African phone number (+27XXXXXXXXX or 0XXXXXXXXX)."
+        });
+      }
+
+      // Check if user already exists by email or phone
+      const existingByEmail = await storage.getUserByEmail(email);
+      if (existingByEmail) {
+        return res.status(400).json({
+          message: "An account with this email already exists"
+        });
+      }
+      const existingByPhone = await storage.getUserByPhone(normalisedPhone);
+      if (existingByPhone) {
+        return res.status(400).json({
+          message: "An account with this phone number already exists"
         });
       }
 
       // Hash password using bcrypt (10 salt rounds for security)
       const hashedPassword = await bcrypt.hash(password, 10);
 
-      // Create new user - always starts as Maverick Starter regardless of plan
+      // Create new user — unverified until they confirm the emailed code.
+      // Welcome bonus is deferred to /api/auth/verify-email so abandoned signups don't earn points.
       const user = await storage.createUserWithEmail({
         firstName,
         lastName,
         email,
         password: hashedPassword,
+        phoneNumber: normalisedPhone,
         ...(currentPlan ? { currentPlan } : {})
       });
 
-      // Award flat 500-point welcome bonus to all new members
-      await storage.createTransaction({
+      // Issue & deliver the 6-digit verification code.
+      const codeResult = await issueVerificationCode({
         userId: user.id,
-        type: 'earning',
-        description: 'Welcome to Maverick Loyalty! Sign-up bonus.',
-        amount: "0.00",
-        pointsEarned: 500,
-        pointsSpent: 0,
-        status: 'completed',
-        orderId: `WELCOME-${user.id.substring(0, 8)}`,
+        email: user.email!,
+        phoneNumber: normalisedPhone,
+        firstName: user.firstName,
       });
 
-      // Fetch updated user to get correct totalPoints after transaction
-      const updatedUser = await storage.getUserByEmail(email);
-
-      // Create session with updated points
+      // Create session in unverified state — middleware will block all
+      // protected endpoints until verification completes.
       (req as any).session.user = {
-        id: updatedUser!.id,
-        email: updatedUser!.email,
-        firstName: updatedUser!.firstName,
-        lastName: updatedUser!.lastName,
-        currentPlan: updatedUser!.currentPlan,
-        membershipTier: updatedUser!.membershipTier,
-        totalPoints: updatedUser!.totalPoints,
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        phoneNumber: user.phoneNumber,
+        currentPlan: user.currentPlan,
+        membershipTier: user.membershipTier,
+        totalPoints: user.totalPoints,
+        isVerified: false,
       };
 
-      res.json({ 
-        success: true, 
+      res.json({
+        success: true,
+        verificationRequired: true,
+        message: codeResult.delivered
+          ? "Account created. Check your email for the 6-digit verification code."
+          : "Account created. A verification code has been generated (check server logs in development).",
+        ...(codeResult.devCode ? { devCode: codeResult.devCode } : {}),
         user: {
-          id: updatedUser!.id,
-          email: updatedUser!.email,
-          firstName: updatedUser!.firstName,
-          lastName: updatedUser!.lastName,
-          currentPlan: updatedUser!.currentPlan,
-          membershipTier: updatedUser!.membershipTier,
-          totalPoints: updatedUser!.totalPoints,
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          phoneNumber: user.phoneNumber,
+          isVerified: false,
         }
       });
     } catch (error) {
@@ -97,27 +122,32 @@ export async function setupEmailAuth(app: Express) {
         return res.status(401).json({ message: "Invalid email or password" });
       }
 
-      // Create session
+      // Create session — preserve unverified state so middleware can gate access.
       (req as any).session.user = {
         id: user.id,
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
+        phoneNumber: user.phoneNumber,
         currentPlan: user.currentPlan,
         membershipTier: user.membershipTier,
         totalPoints: user.totalPoints,
+        isVerified: !!user.isVerified,
       };
 
-      res.json({ 
-        success: true, 
+      res.json({
+        success: true,
+        verificationRequired: !user.isVerified,
         user: {
           id: user.id,
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,
+          phoneNumber: user.phoneNumber,
           currentPlan: user.currentPlan,
           membershipTier: user.membershipTier,
           totalPoints: user.totalPoints,
+          isVerified: !!user.isVerified,
         }
       });
     } catch (error) {
