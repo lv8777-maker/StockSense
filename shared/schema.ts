@@ -110,6 +110,18 @@ export const redemptions = pgTable("redemptions", {
   expiresAt: timestamp("expires_at"),
 });
 
+// MTN contract packages catalogue
+export const packages = pgTable("packages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull().unique(),
+  network: varchar("network").default('MTN'),
+  contractDuration: varchar("contract_duration").notNull(), // "24 Months" or "36 Months"
+  pointsAwarded: integer("points_awarded").notNull(),
+  status: varchar("status").default('active'), // active, inactive
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Personalized offers
 export const offers = pgTable("offers", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -193,6 +205,9 @@ export type InsertOffer = typeof offers.$inferInsert;
 
 export type ReceiptUpload = typeof receiptUploads.$inferSelect;
 export type InsertReceiptUpload = typeof receiptUploads.$inferInsert;
+
+export type Package = typeof packages.$inferSelect;
+export type InsertPackage = typeof packages.$inferInsert;
 
 export const insertRewardSchema = createInsertSchema(rewards).omit({
   id: true,

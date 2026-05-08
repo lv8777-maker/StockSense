@@ -1,0 +1,72 @@
+# Replit Prompt — MTN Contract Packages & Points Allocation
+
+## Context
+This is a loyalty rewards app for Maverick Telecoms. We need to add MTN South Africa contract packages to the app, along with their contract duration and points awarded when a customer signs up or is on that package.
+
+---
+
+## Task
+Add the following MTN contract packages to the app's data layer (database, seed file, or constants — wherever packages are currently defined). Each package has three properties:
+- **Package Name** — the name of the MTN contract
+- **Contract Duration** — either `24 Months` or `36 Months`
+- **Points Awarded** — loyalty points earned by a customer on that package
+
+Do not change any existing UI or logic. Only add the data. If a packages table or seed file already exists, append to it using the same format and structure already in place.
+
+---
+
+## Package Data
+
+### 24-Month Contracts
+
+| Package Name              | Contract Duration | Points Awarded |
+|---------------------------|-------------------|----------------|
+| MTN Yellow Essential      | 24 Months         | 100            |
+| MTN Yellow Core           | 24 Months         | 100            |
+| MTN Yellow Plus           | 24 Months         | 200            |
+| MTN Yellow Prime          | 24 Months         | 200            |
+| MTN Yellow Deluxe         | 24 Months         | 300            |
+| MTN Yellow Elite          | 24 Months         | 300            |
+| MTN Mobile Internet 2GB   | 24 Months         | 100            |
+| MTN Mobile Internet 3GB   | 24 Months         | 100            |
+| MTN Mobile Internet 5GB   | 24 Months         | 200            |
+| MTN Mobile Internet 10GB  | 24 Months         | 300            |
+| MTN Mobile Internet 20GB  | 24 Months         | 300            |
+| MTN Mobile Internet 30GB  | 24 Months         | 500            |
+| MTN Mobile Internet 50GB  | 24 Months         | 500            |
+| MTN MegaFlex R160         | 24 Months         | 100            |
+| MTN MegaFlex R260         | 24 Months         | 200            |
+| MTN MegaFlex R400         | 24 Months         | 200            |
+| MTN Sky Premium Iron      | 24 Months         | 300            |
+| MTN Sky Premium Bronze    | 24 Months         | 500            |
+| MTN Sky Premium Silver    | 24 Months         | 500            |
+| MTN Sky Premium Gold      | 24 Months         | 500            |
+| MTN Sky Premium Platinum  | 24 Months         | 500            |
+
+### 36-Month Contracts
+
+| Package Name              | Contract Duration | Points Awarded |
+|---------------------------|-------------------|----------------|
+| MTN Yellow Essential      | 36 Months         | 100            |
+| MTN Yellow Core           | 36 Months         | 100            |
+| MTN Yellow Plus           | 36 Months         | 200            |
+| MTN Yellow Prime          | 36 Months         | 200            |
+| MTN Yellow Deluxe         | 36 Months         | 300            |
+| MTN Yellow Elite          | 36 Months         | 300            |
+
+---
+
+## Rules & Notes
+- Points are awarded **per month** for as long as the customer remains on that contract package.
+- If a `network` or `provider` field exists on the package model, set it to `"MTN"`.
+- If a `status` field exists, set all new packages to `"active"`.
+- If the app already has any of these package names defined, **update** their points value rather than creating a duplicate.
+- Maintain the existing code style, naming conventions, and file structure — don't refactor anything else.
+
+---
+
+## Acceptance Criteria
+1. All 27 packages above are present in the app's data layer.
+2. Each package correctly stores its contract duration (24 or 36 months) and points awarded.
+3. No existing packages, logic, or UI is broken.
+4. If there is a packages list or admin view in the app, the new packages should appear there automatically once the data is added.
