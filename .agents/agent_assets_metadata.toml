@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "2YowHpfSyihNEpTGKCGFt"
+uri = "file://presentations/point-allocation-discussion.pptx"
+type = "slides"
+title = "Point Allocation & Redemption Mismatch — 4-slide deck"
