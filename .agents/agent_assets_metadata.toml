@@ -6,3 +6,9 @@ id = "2YowHpfSyihNEpTGKCGFt"
 uri = "file://presentations/point-allocation-discussion.pptx"
 type = "slides"
 title = "Point Allocation & Recommendation — 7-slide deck"
+
+[[outputs]]
+id = "PSjakCDKdnbtlPsA35Gc2"
+uri = "file://presentations/client-journey.pptx"
+type = "slides"
+title = "The Client Journey — 9-slide deck"
