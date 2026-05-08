@@ -4,6 +4,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupPhoneAuth, isAuthenticated } from "./phoneAuth";
 import { setupEmailAuth, isEmailAuthenticated } from "./emailAuth";
+import { setupVerificationAuth, requireVerifiedMiddleware } from "./verificationAuth";
 import { uploadLimiter } from "./rateLimiter";
 import { campaignService } from "./services/CampaignService";
 import { pointsEngineService } from "./services/PointsEngineService";
@@ -29,9 +30,15 @@ import {
 } from "./invoiceProcessor";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Block unverified users from anything beyond auth/verification endpoints.
+  // Mounted FIRST so it runs before any route handler registered below — including
+  // the auth setup functions that themselves register endpoints.
+  app.use(requireVerifiedMiddleware);
+
   // Auth middleware
   await setupPhoneAuth(app);
   await setupEmailAuth(app);
+  setupVerificationAuth(app);
   
   // Combined auth middleware - accepts both phone and email auth
   // Since both auth methods use the same session structure, we can use a single check

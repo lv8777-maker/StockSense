@@ -16,6 +16,7 @@ export default function EmailRegistration() {
     firstName: "",
     lastName: "",
     email: "",
+    phoneNumber: "",
     password: "",
     confirmPassword: "",
     currentPlan: ""
@@ -29,21 +30,24 @@ export default function EmailRegistration() {
   const authMutation = useMutation({
     mutationFn: async (data: any) => {
       const endpoint = isLogin ? "/api/auth/login" : "/api/auth/register";
-      return await apiRequest("POST", endpoint, data);
+      const res = await apiRequest("POST", endpoint, data);
+      return await res.json();
     },
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
+      const verificationRequired = !!data?.verificationRequired;
       toast({
-        title: isLogin ? "Welcome back!" : "Account created successfully!",
-        description: isLogin 
-          ? "You've been logged in successfully." 
-          : "Welcome to Maverick Loyalty! Your account has been created successfully.",
+        title: isLogin ? "Welcome back!" : "Account created!",
+        description: verificationRequired
+          ? "Check your email for a 6-digit verification code."
+          : (isLogin
+            ? "You've been logged in successfully."
+            : "Welcome to Maverick Loyalty!"),
       });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-      
-      // Redirect to dashboard after successful authentication
+
       setTimeout(() => {
-        setLocation("/dashboard");
-      }, 500);
+        setLocation(verificationRequired ? "/verify-email" : "/dashboard");
+      }, 400);
     },
     onError: (error: Error) => {
       toast({
@@ -74,6 +78,13 @@ export default function EmailRegistration() {
       if (!formData.lastName) newErrors.lastName = "Last name is required";
       if (!formData.currentPlan) newErrors.currentPlan = "Please select your current plan";
 
+      const phoneDigits = formData.phoneNumber.replace(/[\s-]/g, "");
+      if (!phoneDigits) {
+        newErrors.phoneNumber = "Phone number is required";
+      } else if (!/^\+27\d{9}$/.test(phoneDigits) && !/^0\d{9}$/.test(phoneDigits)) {
+        newErrors.phoneNumber = "Use +27XXXXXXXXX or 0XXXXXXXXX";
+      }
+
       if (formData.password !== formData.confirmPassword) {
         newErrors.confirmPassword = "Passwords do not match";
       }
@@ -87,12 +98,13 @@ export default function EmailRegistration() {
     e.preventDefault();
     if (!validateForm()) return;
 
-    const submitData = isLogin 
+    const submitData = isLogin
       ? { email: formData.email, password: formData.password }
       : {
           firstName: formData.firstName,
           lastName: formData.lastName,
           email: formData.email,
+          phoneNumber: formData.phoneNumber.replace(/[\s-]/g, ""),
           password: formData.password,
           currentPlan: formData.currentPlan
         };
@@ -176,6 +188,26 @@ export default function EmailRegistration() {
                 <p className="text-red-500 text-xs">{errors.email}</p>
               )}
             </div>
+
+            {!isLogin && (
+              <div className="space-y-2">
+                <Label htmlFor="phoneNumber" className="text-sm font-medium">
+                  Phone Number *
+                </Label>
+                <Input
+                  id="phoneNumber"
+                  type="tel"
+                  value={formData.phoneNumber}
+                  onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+                  className={errors.phoneNumber ? "border-red-500" : ""}
+                  placeholder="+27821234567"
+                  data-testid="input-phone-number"
+                />
+                {errors.phoneNumber && (
+                  <p className="text-red-500 text-xs">{errors.phoneNumber}</p>
+                )}
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="password" className="text-sm font-medium">
