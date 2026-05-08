@@ -1,0 +1,163 @@
+# Replit Prompt — Invoice Upload & Points Allocation
+
+## Context
+This is the Maverick Telecoms loyalty rewards app. Customers earn points by signing up to MTN contract packages. We need to add a feature that lets a logged-in customer upload their MTN Tax Invoice (PDF) to claim their points. The app must parse the invoice, verify the customer, identify the package, allocate the correct points, and prevent the same invoice from ever being used twice.
+
+---
+
+## What an MTN Tax Invoice Looks Like
+The uploaded invoices are official MTN Tax Invoice PDFs. The key fields we need to extract are:
+
+| Field | Example Value | Where it appears |
+|---|---|---|
+| **Invoice Number** | INV77187480 | Labelled "Invoice Number" |
+| **Invoice Date** | 01/10/2025 | Labelled "Invoice Date" |
+| **Customer Name** | Gerald Callard | Labelled "CUSTOMER" |
+| **Account Number** | BA112085288 | Labelled "Account Number" |
+| **MSISDN** | 27836511102 | Labelled "MSISDN" (on the line item, not header) |
+| **Package** | Yellow Plans Core | Labelled "Package" |
+| **Tariff** | 36 MTH Yellow Plans Core @ R399 | Labelled "Tariff" — contains contract duration |
+| **Activation Date** | 01/10/2025 | Labelled "Activation Date" |
+
+The contract duration (24 or 36 months) is embedded in the Tariff field — e.g. "36 MTH" = 36 months, "24 MTH" = 24 months.
+
+---
+
+## Feature Requirements
+
+### 1. Invoice Upload UI
+- Add an "Upload Invoice" button or section to the logged-in customer's dashboard or profile page.
+- Accept PDF files only (validate file type before processing).
+- Show a loading/processing state while the invoice is being parsed.
+- Show a clear success or error message once processing is complete.
+
+---
+
+### 2. PDF Parsing
+Use a PDF text-extraction library (e.g. `pdf-parse`, `pdfplumber`, `PyPDF2`, or equivalent for your stack) to extract text from the uploaded PDF.
+
+Extract the following fields using pattern matching on the extracted text:
+
+```
+Invoice Number  → look for "Invoice Number:" followed by the value (e.g. INV77187480)
+Invoice Date    → look for "Invoice Date:" followed by the date
+Customer Name   → look for "CUSTOMER:" followed by the full name
+Account Number  → look for "Account Number:" followed by the value
+Package         → look for "Package:" followed by the package name
+Tariff          → look for "Tariff:" followed by the tariff string
+Activation Date → look for "Activation Date:" followed by the date
+MSISDN          → look for "MSISDN:" in the line item section
+```
+
+If any of these fields cannot be extracted, return an error: `"Could not read invoice. Please ensure you are uploading a valid MTN Tax Invoice."`
+
+---
+
+### 3. Customer Name Verification
+Once the invoice is parsed, cross-reference the **Customer Name** from the invoice against the **full name on the logged-in user's account**.
+
+- Perform a **case-insensitive** comparison.
+- Allow for minor spacing differences (trim whitespace before comparing).
+- If the names **do not match**, reject the upload with the message:
+  `"The name on this invoice does not match your account. Please contact support if you believe this is an error."`
+- Do **not** allocate any points if the name check fails.
+
+---
+
+### 4. Package Lookup & Points Allocation
+Once the customer name is verified, extract the **Package name** and **contract duration** from the invoice and look them up in the packages table (added in the previous prompt).
+
+**Contract duration logic:**
+- If the Tariff field contains "36 MTH" → contract duration = 36 Months
+- If the Tariff field contains "24 MTH" → contract duration = 24 Months
+- If the Tariff field contains "1 MTH" or any other value → flag as unrecognised contract term
+
+Match the extracted package name to the `package_name` field in the packages table, **and** match the contract duration. Use a **case-insensitive, partial match** to handle minor naming differences (e.g. "Yellow Plans Core" should match "MTN Yellow Plans Core").
+
+**Points lookup table (from the packages data):**
+
+| Package | 24 Months | 36 Months |
+|---|---|---|
+| Yellow Essential | 100 | 100 |
+| Yellow Core | 100 | 100 |
+| Yellow Plus | 200 | 200 |
+| Yellow Prime | 200 | 200 |
+| Yellow Deluxe | 300 | 300 |
+| Yellow Elite | 300 | 300 |
+| Mobile Internet 2GB | 100 | — |
+| Mobile Internet 3GB | 100 | — |
+| Mobile Internet 5GB | 200 | — |
+| Mobile Internet 10GB | 300 | — |
+| Mobile Internet 20GB | 300 | — |
+| Mobile Internet 30GB | 500 | — |
+| Mobile Internet 50GB | 500 | — |
+| MegaFlex R160 | 100 | — |
+| MegaFlex R260 | 200 | — |
+| MegaFlex R400 | 200 | — |
+| Sky Premium Iron | 300 | — |
+| Sky Premium Bronze | 500 | — |
+| Sky Premium Silver | 500 | — |
+| Sky Premium Gold | 500 | — |
+| Sky Premium Platinum | 500 | — |
+
+If the package is **not found** in the table, do not allocate points and show the message:
+`"This package is not eligible for points. Please contact support."`
+
+---
+
+### 5. Duplicate Invoice Safeguard
+Before allocating any points, check whether the **Invoice Number** already exists in the database for **any user**.
+
+- Store every processed invoice number in an `invoice_submissions` table (or equivalent) with the following fields:
+  - `invoice_number` (unique, indexed)
+  - `user_id` (the account that submitted it)
+  - `submitted_at` (timestamp)
+  - `package_name`
+  - `points_awarded`
+
+- **If the invoice number already exists** in this table — regardless of which user submitted it — reject the upload with the message:
+  `"This invoice has already been used to claim points and cannot be submitted again."`
+
+- This check must happen **before** any points are added.
+
+---
+
+### 6. Points Transaction
+If all checks pass (name match ✓, package found ✓, no duplicate ✓):
+
+1. Add the points to the logged-in user's points balance.
+2. Create a record in the `invoice_submissions` table.
+3. Create a record in the points transaction history (if one exists) with:
+   - Type: `"invoice_upload"`
+   - Points: the amount awarded
+   - Description: e.g. `"Points claimed for MTN Yellow Plans Core (36 months) — Invoice INV77187480"`
+   - Timestamp: now
+4. Show a success message to the user:
+   `"🎉 You've earned [X] points for your MTN [Package Name] contract!"`
+
+---
+
+### 7. Error Handling Summary
+
+| Scenario | Message to show user |
+|---|---|
+| File is not a PDF | "Please upload a PDF file." |
+| PDF cannot be parsed | "Could not read invoice. Please ensure you are uploading a valid MTN Tax Invoice." |
+| Customer name mismatch | "The name on this invoice does not match your account. Please contact support if you believe this is an error." |
+| Package not in points table | "This package is not eligible for points. Please contact support." |
+| Invoice already submitted | "This invoice has already been used to claim points and cannot be submitted again." |
+| Success | "🎉 You've earned [X] points for your MTN [Package Name] contract!" |
+
+---
+
+## Database / Schema Changes Needed
+1. **`invoice_submissions` table** — new table with: `id`, `invoice_number` (unique), `user_id`, `package_name`, `contract_duration`, `points_awarded`, `submitted_at`
+2. **No changes** to any existing tables except adding points to the user's balance via the existing points mechanism.
+
+---
+
+## Rules
+- Never allocate points twice for the same invoice number, even if submitted by different users.
+- Never allocate points if the customer name on the invoice does not match the logged-in user's name.
+- Do not modify any existing features, UI, or logic outside of what is described here.
+- Keep the existing code style and structure.

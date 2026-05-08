@@ -13,6 +13,7 @@ import Profile from "@/pages/profile";
 import Admin from "@/pages/admin";
 import Campaigns from "@/pages/campaigns";
 import SubmitPurchase from "@/pages/SubmitPurchase";
+import UploadInvoice from "@/pages/UploadInvoice";
 import NotFound from "@/pages/not-found";
 import EmailRegistration from "@/components/EmailRegistration";
 import ForgotPassword from "@/components/ForgotPassword";
@@ -58,6 +59,7 @@ function Router() {
           <Route path="/dashboard" component={Dashboard} />
           <Route path="/rewards" component={Rewards} />
           <Route path="/submit-purchase" component={SubmitPurchase} />
+          <Route path="/upload-invoice" component={UploadInvoice} />
           <Route path="/history" component={History} />
           <Route path="/profile" component={Profile} />
           <Route path="/campaigns" component={Campaigns} />

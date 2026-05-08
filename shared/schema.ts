@@ -124,6 +124,17 @@ export const packages = pgTable("packages", {
   index("packages_name_duration_unique").on(table.name, table.contractDuration),
 ]);
 
+// Invoice submissions (MTN tax invoices uploaded to claim package points)
+export const invoiceSubmissions = pgTable("invoice_submissions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  invoiceNumber: varchar("invoice_number").notNull().unique(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  packageName: varchar("package_name").notNull(),
+  contractDuration: varchar("contract_duration").notNull(),
+  pointsAwarded: integer("points_awarded").notNull(),
+  submittedAt: timestamp("submitted_at").defaultNow(),
+});
+
 // Personalized offers
 export const offers = pgTable("offers", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -210,6 +221,9 @@ export type InsertReceiptUpload = typeof receiptUploads.$inferInsert;
 
 export type Package = typeof packages.$inferSelect;
 export type InsertPackage = typeof packages.$inferInsert;
+
+export type InvoiceSubmission = typeof invoiceSubmissions.$inferSelect;
+export type InsertInvoiceSubmission = typeof invoiceSubmissions.$inferInsert;
 
 export const insertRewardSchema = createInsertSchema(rewards).omit({
   id: true,
