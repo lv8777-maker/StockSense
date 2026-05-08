@@ -21,6 +21,13 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { processReceiptImage, isValidReceiptFile } from "./receiptProcessor";
+import {
+  extractInvoiceText,
+  parseInvoiceText,
+  namesMatch,
+  findPackage,
+  isValidInvoiceFile,
+} from "./invoiceProcessor";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -233,6 +240,191 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error creating transaction:", error);
       res.status(500).json({ message: "Failed to create transaction" });
+    }
+  });
+
+  // Configure multer for invoice (PDF) uploads
+  const invoicesDir = path.join(process.cwd(), 'uploads', 'invoices');
+  if (!fs.existsSync(invoicesDir)) {
+    fs.mkdirSync(invoicesDir, { recursive: true });
+  }
+  const invoiceUpload = multer({
+    storage: multer.diskStorage({
+      destination: (req, file, cb) => cb(null, invoicesDir),
+      filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, 'invoice-' + uniqueSuffix + path.extname(file.originalname));
+      },
+    }),
+    limits: { fileSize: 10 * 1024 * 1024 },
+    fileFilter: (req, file, cb) => {
+      if (isValidInvoiceFile(file.mimetype, file.originalname)) {
+        cb(null, true);
+      } else {
+        cb(new Error('Please upload a PDF file.'));
+      }
+    },
+  });
+
+  // Wrap multer so file-type / size errors return a clean 400 JSON instead of a 500.
+  const handleInvoiceUpload = (req: any, res: any, next: any) => {
+    invoiceUpload.single('invoice')(req, res, (err: any) => {
+      if (err) {
+        const message = err?.message === 'Please upload a PDF file.'
+          ? 'Please upload a PDF file.'
+          : (err?.code === 'LIMIT_FILE_SIZE'
+              ? 'File too large. Maximum size is 10MB.'
+              : 'Could not read invoice. Please ensure you are uploading a valid MTN Tax Invoice.');
+        return res.status(400).json({ message });
+      }
+      next();
+    });
+  };
+
+  // Invoice upload route — parses an MTN Tax Invoice PDF and awards package points
+  app.post('/api/invoices/upload', uploadLimiter, combinedAuth, handleInvoiceUpload, async (req: any, res) => {
+    const cleanup = (filePath?: string) => {
+      if (filePath && fs.existsSync(filePath)) {
+        fs.unlink(filePath, () => {});
+      }
+    };
+
+    try {
+      const userId = req.user?.claims?.sub || req.session?.user?.id;
+      if (!userId) {
+        cleanup(req.file?.path);
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      if (!req.file) {
+        return res.status(400).json({ message: "Please upload a PDF file." });
+      }
+
+      const filePath = req.file.path;
+
+      // 1. Extract & parse invoice
+      let parsed;
+      try {
+        const buffer = fs.readFileSync(filePath);
+        const text = await extractInvoiceText(buffer);
+        parsed = parseInvoiceText(text);
+      } catch (err) {
+        console.error('PDF extraction failed:', err);
+        cleanup(filePath);
+        return res.status(400).json({
+          message: "Could not read invoice. Please ensure you are uploading a valid MTN Tax Invoice."
+        });
+      }
+      if (!parsed) {
+        cleanup(filePath);
+        return res.status(400).json({
+          message: "Could not read invoice. Please ensure you are uploading a valid MTN Tax Invoice."
+        });
+      }
+
+      // 2. Duplicate-invoice safeguard (across ALL users)
+      const existing = await storage.getInvoiceByNumber(parsed.invoiceNumber);
+      if (existing) {
+        cleanup(filePath);
+        return res.status(409).json({
+          message: "This invoice has already been used to claim points and cannot be submitted again."
+        });
+      }
+
+      // 3. Customer name verification
+      const user = await storage.getUser(userId);
+      if (!user) {
+        cleanup(filePath);
+        return res.status(404).json({ message: "User account not found." });
+      }
+      if (!namesMatch(parsed.customerName, user.firstName, user.lastName)) {
+        cleanup(filePath);
+        return res.status(403).json({
+          message: "The name on this invoice does not match your account. Please contact support if you believe this is an error."
+        });
+      }
+
+      // 4. Contract duration must be recognised (24 or 36 months)
+      if (!parsed.contractDuration) {
+        cleanup(filePath);
+        return res.status(400).json({
+          message: "This package is not eligible for points. Please contact support."
+        });
+      }
+
+      // 5. Package lookup
+      const pkg = await findPackage(parsed.packageName, parsed.contractDuration);
+      if (!pkg) {
+        cleanup(filePath);
+        return res.status(400).json({
+          message: "This package is not eligible for points. Please contact support."
+        });
+      }
+
+      // 6. Record submission FIRST — the unique constraint on invoice_number is the
+      //    authoritative duplicate guard against concurrent races. Only after this
+      //    insert succeeds do we award points / log the transaction.
+      let submission;
+      try {
+        submission = await storage.createInvoiceSubmission({
+          invoiceNumber: parsed.invoiceNumber,
+          userId,
+          packageName: pkg.name,
+          contractDuration: parsed.contractDuration,
+          pointsAwarded: pkg.pointsAwarded,
+        });
+      } catch (err: any) {
+        if (err?.code === '23505') {
+          cleanup(filePath);
+          return res.status(409).json({
+            message: "This invoice has already been used to claim points and cannot be submitted again."
+          });
+        }
+        throw err;
+      }
+
+      await storage.createTransaction({
+        userId,
+        type: 'invoice_upload',
+        description: `Points claimed for MTN ${pkg.name} (${parsed.contractDuration.toLowerCase()}) — Invoice ${parsed.invoiceNumber}`,
+        amount: '0.00',
+        pointsEarned: pkg.pointsAwarded,
+        pointsSpent: 0,
+        status: 'completed',
+        orderId: parsed.invoiceNumber,
+      });
+
+      cleanup(filePath);
+      return res.json({
+        success: true,
+        message: `🎉 You've earned ${pkg.pointsAwarded} points for your MTN ${pkg.name} contract!`,
+        pointsAwarded: pkg.pointsAwarded,
+        packageName: pkg.name,
+        contractDuration: parsed.contractDuration,
+        invoiceNumber: parsed.invoiceNumber,
+        submissionId: submission.id,
+      });
+    } catch (error: any) {
+      console.error('Invoice upload error:', error);
+      cleanup(req.file?.path);
+      // Surface duplicate-key races gracefully
+      if (error?.code === '23505') {
+        return res.status(409).json({
+          message: "This invoice has already been used to claim points and cannot be submitted again."
+        });
+      }
+      return res.status(500).json({ message: "Failed to process invoice." });
+    }
+  });
+
+  app.get('/api/invoices', combinedAuth, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub || req.session?.user?.id;
+      if (!userId) return res.status(401).json({ message: "Not authenticated" });
+      const submissions = await storage.getUserInvoiceSubmissions(userId);
+      res.json(submissions);
+    } catch (error) {
+      console.error('Error fetching invoice submissions:', error);
+      res.status(500).json({ message: "Failed to fetch invoices" });
     }
   });
 

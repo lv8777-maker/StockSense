@@ -5,6 +5,7 @@ import {
   redemptions,
   offers,
   receiptUploads,
+  invoiceSubmissions,
   campaigns,
   loyaltyAccounts,
   earningRules,
@@ -24,6 +25,8 @@ import {
   type InsertOffer,
   type ReceiptUpload,
   type InsertReceiptUpload,
+  type InvoiceSubmission,
+  type InsertInvoiceSubmission,
   type Campaign,
   type InsertCampaign,
   type LoyaltyAccount,
@@ -92,6 +95,11 @@ export interface IStorage {
   createReceiptUpload(upload: InsertReceiptUpload): Promise<ReceiptUpload>;
   getUserReceiptUploads(userId: string, limit?: number): Promise<ReceiptUpload[]>;
   updateReceiptUpload(id: string, updates: Partial<ReceiptUpload>): Promise<ReceiptUpload>;
+
+  // Invoice submissions
+  getInvoiceByNumber(invoiceNumber: string): Promise<InvoiceSubmission | undefined>;
+  createInvoiceSubmission(submission: InsertInvoiceSubmission): Promise<InvoiceSubmission>;
+  getUserInvoiceSubmissions(userId: string, limit?: number): Promise<InvoiceSubmission[]>;
   
   // Enterprise features - Campaigns
   getCampaigns(page?: number, limit?: number): Promise<{ campaigns: Campaign[]; total: number; hasMore: boolean; }>;
@@ -533,6 +541,31 @@ export class DatabaseStorage implements IStorage {
       .from(receiptUploads)
       .where(eq(receiptUploads.userId, userId))
       .orderBy(desc(receiptUploads.createdAt))
+      .limit(limit);
+  }
+
+  async getInvoiceByNumber(invoiceNumber: string): Promise<InvoiceSubmission | undefined> {
+    const [row] = await db
+      .select()
+      .from(invoiceSubmissions)
+      .where(eq(invoiceSubmissions.invoiceNumber, invoiceNumber));
+    return row;
+  }
+
+  async createInvoiceSubmission(submission: InsertInvoiceSubmission): Promise<InvoiceSubmission> {
+    const [created] = await db
+      .insert(invoiceSubmissions)
+      .values(submission)
+      .returning();
+    return created;
+  }
+
+  async getUserInvoiceSubmissions(userId: string, limit: number = 50): Promise<InvoiceSubmission[]> {
+    return await db
+      .select()
+      .from(invoiceSubmissions)
+      .where(eq(invoiceSubmissions.userId, userId))
+      .orderBy(desc(invoiceSubmissions.submittedAt))
       .limit(limit);
   }
 
