@@ -32,9 +32,19 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { insertRewardSchema } from "@shared/schema";
-import { Users, Gift, Coins, TrendingUp, Download, Plus, Clock, AlertTriangle } from "lucide-react";
+import { Users, Gift, Coins, TrendingUp, Download, Plus, Clock, AlertTriangle, KeyRound } from "lucide-react";
 import { z } from "zod";
 import Navbar from "@/components/Navbar";
 
@@ -48,6 +58,42 @@ export default function Admin() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
+  const [resetTarget, setResetTarget] = useState<any | null>(null);
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetPhone, setResetPhone] = useState("");
+  const [resetReason, setResetReason] = useState("");
+
+  const openResetDialog = (user: any) => {
+    setResetTarget(user);
+    setResetEmail(user.email ?? "");
+    setResetPhone(user.phoneNumber ?? "");
+    setResetReason("");
+  };
+  const closeResetDialog = () => {
+    setResetTarget(null);
+    setResetEmail("");
+    setResetPhone("");
+    setResetReason("");
+  };
+
+  const resetContactMutation = useMutation({
+    mutationFn: async (vars: { userId: string; email?: string; phoneNumber?: string; reason?: string }) => {
+      const res = await apiRequest("POST", `/api/admin/users/${vars.userId}/reset-contact`, {
+        email: vars.email,
+        phoneNumber: vars.phoneNumber,
+        reason: vars.reason,
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Contact updated", description: "The customer can now sign in with the new details." });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      closeResetDialog();
+    },
+    onError: (error: Error) => {
+      toast({ title: "Couldn't update contact", description: error.message, variant: "destructive" });
+    },
+  });
 
   const { data: adminStats } = useQuery({
     queryKey: ["/api/admin/stats"],
@@ -327,6 +373,15 @@ export default function Admin() {
                               <Button variant="ghost" size="sm" data-testid={`button-view-user-${user.id}`}>
                                 View
                               </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => openResetDialog(user)}
+                                data-testid={`button-reset-contact-${user.id}`}
+                              >
+                                <KeyRound className="mr-1 h-3.5 w-3.5" />
+                                Reset contact
+                              </Button>
                               <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-900" data-testid={`button-deactivate-user-${user.id}`}>
                                 Deactivate
                               </Button>
@@ -542,6 +597,91 @@ export default function Admin() {
         </TabsContent>
       </Tabs>
       </div>
+
+      <Dialog open={!!resetTarget} onOpenChange={(open) => !open && closeResetDialog()}>
+        <DialogContent className="sm:max-w-md" data-testid="dialog-reset-contact">
+          <DialogHeader>
+            <DialogTitle>Reset contact details</DialogTitle>
+            <DialogDescription>
+              Change this customer's email or phone if they've lost access. They'll be marked as verified
+              and can sign in with the new details immediately. This action is logged.
+            </DialogDescription>
+          </DialogHeader>
+
+          {resetTarget && (
+            <div className="space-y-4 py-2">
+              <div className="rounded-md bg-gray-50 p-3 text-sm">
+                <div className="font-medium text-gray-900">
+                  {resetTarget.firstName} {resetTarget.lastName}
+                </div>
+                <div className="text-gray-500">
+                  Current email: {resetTarget.email || "—"}
+                </div>
+                <div className="text-gray-500">
+                  Current phone: {resetTarget.phoneNumber || "—"}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="reset-email">New email</Label>
+                <Input
+                  id="reset-email"
+                  type="email"
+                  value={resetEmail}
+                  onChange={(e) => setResetEmail(e.target.value)}
+                  placeholder="customer@example.com"
+                  data-testid="input-reset-email"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="reset-phone">New phone (+27 or 0…)</Label>
+                <Input
+                  id="reset-phone"
+                  type="tel"
+                  value={resetPhone}
+                  onChange={(e) => setResetPhone(e.target.value)}
+                  placeholder="+27821234567"
+                  data-testid="input-reset-phone"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="reset-reason">Reason (for the audit log)</Label>
+                <Textarea
+                  id="reset-reason"
+                  value={resetReason}
+                  onChange={(e) => setResetReason(e.target.value)}
+                  placeholder="e.g. Customer lost access to old phone number, verified ID over the phone."
+                  rows={3}
+                  data-testid="input-reset-reason"
+                />
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={closeResetDialog} data-testid="button-reset-cancel">
+              Cancel
+            </Button>
+            <Button
+              onClick={() =>
+                resetTarget &&
+                resetContactMutation.mutate({
+                  userId: resetTarget.id,
+                  email: resetEmail.trim() || undefined,
+                  phoneNumber: resetPhone.trim() || undefined,
+                  reason: resetReason.trim() || undefined,
+                })
+              }
+              disabled={resetContactMutation.isPending}
+              data-testid="button-reset-confirm"
+            >
+              {resetContactMutation.isPending ? "Saving…" : "Save changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
