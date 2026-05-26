@@ -12,3 +12,9 @@ id = "PSjakCDKdnbtlPsA35Gc2"
 uri = "file://presentations/client-journey.pptx"
 type = "slides"
 title = "The Client Journey — 9-slide deck"
+
+[[outputs]]
+id = "De-18RZCQ5JF9pcHhlT8G"
+uri = "file://Maverick_Loyalty_Launch_Checklist.pptx"
+type = "slides"
+title = "Maverick Loyalty — Launch Checklist"
