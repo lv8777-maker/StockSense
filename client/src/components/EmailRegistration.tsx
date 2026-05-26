@@ -19,8 +19,10 @@ export default function EmailRegistration() {
     phoneNumber: "",
     password: "",
     confirmPassword: "",
-    currentPlan: ""
+    currentPlan: "",
+    acceptedTerms: false,
   });
+  const TERMS_VERSION = "2026-05-26";
   const [isLogin, setIsLogin] = useState(true);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const { toast } = useToast();
@@ -88,6 +90,10 @@ export default function EmailRegistration() {
       if (formData.password !== formData.confirmPassword) {
         newErrors.confirmPassword = "Passwords do not match";
       }
+
+      if (!formData.acceptedTerms) {
+        newErrors.acceptedTerms = "Please accept the Terms of Service and Privacy Policy.";
+      }
     }
 
     setErrors(newErrors);
@@ -106,7 +112,9 @@ export default function EmailRegistration() {
           email: formData.email,
           phoneNumber: formData.phoneNumber.replace(/[\s-]/g, ""),
           password: formData.password,
-          currentPlan: formData.currentPlan
+          currentPlan: formData.currentPlan,
+          acceptedTerms: formData.acceptedTerms,
+          termsVersion: TERMS_VERSION,
         };
 
     authMutation.mutate(submitData);
@@ -273,6 +281,34 @@ export default function EmailRegistration() {
               </div>
             )}
 
+            {!isLogin && (
+              <div className="space-y-1">
+                <label className="flex items-start gap-2 text-sm cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.acceptedTerms}
+                    onChange={(e) => setFormData({ ...formData, acceptedTerms: e.target.checked })}
+                    className="mt-1 h-4 w-4 rounded border-gray-300 text-[#FDC800] focus:ring-[#FDC800]"
+                    data-testid="checkbox-accept-terms"
+                  />
+                  <span className="text-gray-700">
+                    I have read and agree to the{" "}
+                    <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-yellow-700 underline">
+                      Terms of Service
+                    </a>{" "}
+                    and{" "}
+                    <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-yellow-700 underline">
+                      Privacy Policy
+                    </a>
+                    .
+                  </span>
+                </label>
+                {errors.acceptedTerms && (
+                  <p className="text-red-500 text-xs">{errors.acceptedTerms}</p>
+                )}
+              </div>
+            )}
+
             <Button
               type="submit"
               disabled={authMutation.isPending}
@@ -321,11 +357,16 @@ export default function EmailRegistration() {
             </div>
           </form>
 
-          <div className="mt-4 pt-4 border-t border-gray-200">
-            <p className="text-xs text-center text-gray-500">
-              By {isLogin ? "signing in" : "creating an account"}, you agree to our Terms of Service and Privacy Policy
-            </p>
-          </div>
+          {isLogin && (
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <p className="text-xs text-center text-gray-500">
+                By signing in you confirm you've read our{" "}
+                <a href="/terms" target="_blank" rel="noopener noreferrer" className="underline">Terms of Service</a>{" "}
+                and{" "}
+                <a href="/privacy" target="_blank" rel="noopener noreferrer" className="underline">Privacy Policy</a>.
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

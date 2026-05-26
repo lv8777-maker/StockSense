@@ -48,6 +48,8 @@ export const users = pgTable("users", {
   pointsExpiryDate: timestamp("points_expiry_date"), // 12 months from last points-earning activity
   isVerified: boolean("is_verified").default(false), // email + phone verified together via emailed code
   emailVerifiedAt: timestamp("email_verified_at"),
+  termsAcceptedAt: timestamp("terms_accepted_at"), // when the user ticked "I agree to Terms + Privacy"
+  termsVersion: varchar("terms_version"), // version string of the documents they accepted (e.g. "2026-05-26")
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

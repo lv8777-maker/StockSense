@@ -20,11 +20,17 @@ export async function setupEmailAuth(app: Express) {
   // Email/password registration endpoint with rate limiting
   app.post("/api/auth/register", authLimiter, async (req, res) => {
     try {
-      const { firstName, lastName, email, password, phoneNumber, currentPlan } = req.body;
+      const { firstName, lastName, email, password, phoneNumber, currentPlan, acceptedTerms, termsVersion } = req.body;
 
       if (!firstName || !lastName || !email || !password || !phoneNumber) {
         return res.status(400).json({
           message: "All fields are required: firstName, lastName, email, phoneNumber, password"
+        });
+      }
+
+      if (!acceptedTerms) {
+        return res.status(400).json({
+          message: "You need to accept the Terms of Service and Privacy Policy to create an account."
         });
       }
 
@@ -60,6 +66,7 @@ export async function setupEmailAuth(app: Express) {
         email,
         password: hashedPassword,
         phoneNumber: normalisedPhone,
+        termsVersion: typeof termsVersion === "string" ? termsVersion : "2026-05-26",
         ...(currentPlan ? { currentPlan } : {})
       });
 
