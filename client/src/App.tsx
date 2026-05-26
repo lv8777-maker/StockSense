@@ -16,6 +16,7 @@ import SubmitPurchase from "@/pages/SubmitPurchase";
 import UploadInvoice from "@/pages/UploadInvoice";
 import VerifyEmail from "@/pages/VerifyEmail";
 import NotFound from "@/pages/not-found";
+import PrivacyPolicy from "@/pages/privacy";
 import EmailRegistration from "@/components/EmailRegistration";
 import ForgotPassword from "@/components/ForgotPassword";
 import ResetPassword from "@/components/ResetPassword";
@@ -73,6 +74,7 @@ function Router() {
           <Route path="/admin" component={ProtectedAdminRoute} />
         </>
       )}
+      <Route path="/privacy" component={PrivacyPolicy} />
       <Route component={NotFound} />
     </Switch>
   );
