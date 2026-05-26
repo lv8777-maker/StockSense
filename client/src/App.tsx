@@ -17,6 +17,7 @@ import UploadInvoice from "@/pages/UploadInvoice";
 import VerifyEmail from "@/pages/VerifyEmail";
 import NotFound from "@/pages/not-found";
 import PrivacyPolicy from "@/pages/privacy";
+import TermsOfService from "@/pages/terms";
 import EmailRegistration from "@/components/EmailRegistration";
 import ForgotPassword from "@/components/ForgotPassword";
 import ResetPassword from "@/components/ResetPassword";
@@ -75,6 +76,7 @@ function Router() {
         </>
       )}
       <Route path="/privacy" component={PrivacyPolicy} />
+      <Route path="/terms" component={TermsOfService} />
       <Route component={NotFound} />
     </Switch>
   );
