@@ -160,6 +160,8 @@ export interface IStorage {
     userAgent?: string;
   }): Promise<void>;
   listAuditLogs(opts?: { limit?: number; action?: string; entityType?: string }): Promise<Array<AuditLog & { performedByEmail?: string | null }>>;
+  getAuditLog(id: string): Promise<(AuditLog & { performedByEmail?: string | null }) | undefined>;
+  findRevertOf(originalId: string): Promise<AuditLog | undefined>;
 
   // Password reset
   createPasswordResetToken(userId: string): Promise<string>;
@@ -925,7 +927,7 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
-  async listAuditLogs(opts: { limit?: number; action?: string; entityType?: string } = {}): Promise<Array<AuditLog & { performedByEmail?: string | null }>> {
+  async listAuditLogs(opts: { limit?: number; action?: string; entityType?: string } = {}): Promise<Array<AuditLog & { performedByEmail?: string | null; revertedAt?: string | null }>> {
     const limit = Math.min(Math.max(opts.limit ?? 100, 1), 500);
     const conditions: any[] = [];
     if (opts.action) conditions.push(eq(auditLogs.action, opts.action));
@@ -945,6 +947,12 @@ export class DatabaseStorage implements IStorage {
         sessionId: auditLogs.sessionId,
         timestamp: auditLogs.timestamp,
         performedByEmail: adminUsers.email,
+        revertedAt: sql<string | null>`(
+          SELECT r.timestamp FROM ${auditLogs} r
+          WHERE r.action = 'reset_contact_revert'
+            AND r.changes->>'revertOf' = ${auditLogs.id}::text
+          LIMIT 1
+        )`,
       })
       .from(auditLogs)
       .leftJoin(adminUsers, eq(adminUsers.id, auditLogs.performedBy))
@@ -953,6 +961,43 @@ export class DatabaseStorage implements IStorage {
       .limit(limit);
 
     return rows as any;
+  }
+
+  async getAuditLog(id: string): Promise<(AuditLog & { performedByEmail?: string | null }) | undefined> {
+    const [row] = await db
+      .select({
+        id: auditLogs.id,
+        entityType: auditLogs.entityType,
+        entityId: auditLogs.entityId,
+        action: auditLogs.action,
+        changes: auditLogs.changes,
+        performedBy: auditLogs.performedBy,
+        performedByType: auditLogs.performedByType,
+        ipAddress: auditLogs.ipAddress,
+        userAgent: auditLogs.userAgent,
+        sessionId: auditLogs.sessionId,
+        timestamp: auditLogs.timestamp,
+        performedByEmail: adminUsers.email,
+      })
+      .from(auditLogs)
+      .leftJoin(adminUsers, eq(adminUsers.id, auditLogs.performedBy))
+      .where(eq(auditLogs.id, id))
+      .limit(1);
+    return row as any;
+  }
+
+  async findRevertOf(originalId: string): Promise<AuditLog | undefined> {
+    const [row] = await db
+      .select()
+      .from(auditLogs)
+      .where(
+        and(
+          eq(auditLogs.action, "reset_contact_revert"),
+          sql`${auditLogs.changes}->>'revertOf' = ${originalId}`,
+        )
+      )
+      .limit(1);
+    return row;
   }
 
   async createPasswordResetToken(userId: string): Promise<string> {

@@ -64,9 +64,12 @@ type AuditLogEntry = {
   ipAddress: string | null;
   userAgent: string | null;
   timestamp: string;
+  revertedAt?: string | null;
 };
 
 function AuditLogPanel() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [actionFilter, setActionFilter] = useState<string>("all");
   const params = new URLSearchParams();
   if (actionFilter !== "all") params.set("action", actionFilter);
@@ -85,6 +88,21 @@ function AuditLogPanel() {
   const fmtAction = (a: string) =>
     a.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
+  const revertMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await apiRequest("POST", `/api/admin/audit-logs/${id}/revert`, {});
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Reverted", description: "Previous contact details have been restored." });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/audit-logs"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Couldn't revert", description: err.message, variant: "destructive" });
+    },
+  });
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
@@ -97,6 +115,7 @@ function AuditLogPanel() {
             <SelectContent>
               <SelectItem value="all">All actions</SelectItem>
               <SelectItem value="reset_contact">Reset contact</SelectItem>
+              <SelectItem value="reset_contact_revert">Reset contact (reverted)</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -117,6 +136,7 @@ function AuditLogPanel() {
                   <TableHead>Target</TableHead>
                   <TableHead>Change</TableHead>
                   <TableHead>IP</TableHead>
+                  <TableHead></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -171,6 +191,22 @@ function AuditLogPanel() {
                       </TableCell>
                       <TableCell className="text-xs text-gray-500 font-mono">
                         {log.ipAddress || "—"}
+                      </TableCell>
+                      <TableCell>
+                        {log.action === "reset_contact" && !log.revertedAt && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => revertMutation.mutate(log.id)}
+                            disabled={revertMutation.isPending}
+                            data-testid={`button-revert-${log.id}`}
+                          >
+                            Undo
+                          </Button>
+                        )}
+                        {log.action === "reset_contact" && log.revertedAt && (
+                          <span className="text-xs text-gray-400 italic">reverted</span>
+                        )}
                       </TableCell>
                     </TableRow>
                   );

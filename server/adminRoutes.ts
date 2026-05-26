@@ -255,6 +255,110 @@ adminRouter.delete(
 );
 
 /**
+ * POST /api/admin/audit-logs/:id/revert
+ * Revert a 'reset_contact' action — swap email/phone back to their previous values.
+ * Writes a new audit-log entry referencing the original. Super Admin and Admin only.
+ */
+adminRouter.post(
+  "/audit-logs/:id/revert",
+  authorizeRoles(["super_admin", "admin"]),
+  async (req, res) => {
+    try {
+      const original = await storage.getAuditLog(req.params.id);
+      if (!original) return res.status(404).json({ message: "Audit entry not found" });
+
+      if (original.action !== "reset_contact") {
+        return res.status(400).json({ message: "Only 'reset contact' actions can be reverted." });
+      }
+
+      const existingRevert = await storage.findRevertOf(original.id);
+      if (existingRevert) {
+        return res.status(409).json({ message: "This entry has already been reverted." });
+      }
+
+      const before = (original.changes as any)?.before ?? {};
+      if (!before.email && !before.phoneNumber) {
+        return res.status(400).json({ message: "Nothing to revert — no previous values recorded." });
+      }
+
+      const userId = original.entityId;
+      const target = await storage.getUser(userId);
+      if (!target) return res.status(404).json({ message: "User not found" });
+
+      // Block self-revert outright (covers the case where the target user IS the acting admin).
+      if (userId === req.admin!.userId) {
+        return res.status(403).json({
+          message: "You can't revert your own contact details from here.",
+        });
+      }
+
+      // Same admin-account protection as the forward action.
+      const targetAdmin = await storage.getAdminByUserId(userId);
+      if (targetAdmin && req.admin!.role !== "super_admin") {
+        return res.status(403).json({
+          message: "Only a super admin can revert contact details for an admin account.",
+        });
+      }
+
+      const updates: { email?: string | null; phoneNumber?: string | null } = {};
+      const beforeSnap: Record<string, unknown> = {};
+      const afterSnap: Record<string, unknown> = {};
+
+      if (before.email !== undefined && before.email !== target.email) {
+        if (before.email) {
+          const existing = await storage.getUserByEmail(String(before.email));
+          if (existing && existing.id !== userId) {
+            return res.status(409).json({ message: "Can't revert email — another account now uses it." });
+          }
+        }
+        updates.email = before.email ?? null;
+        beforeSnap.email = target.email;
+        afterSnap.email = before.email;
+      }
+
+      if (before.phoneNumber !== undefined && before.phoneNumber !== target.phoneNumber) {
+        if (before.phoneNumber) {
+          const existing = await storage.getUserByPhone(String(before.phoneNumber));
+          if (existing && existing.id !== userId) {
+            return res.status(409).json({ message: "Can't revert phone — another account now uses it." });
+          }
+        }
+        updates.phoneNumber = before.phoneNumber ?? null;
+        beforeSnap.phoneNumber = target.phoneNumber;
+        afterSnap.phoneNumber = before.phoneNumber;
+      }
+
+      if (Object.keys(updates).length === 0) {
+        return res.status(400).json({ message: "Nothing to revert — values already match." });
+      }
+
+      await storage.updateUserProfile(userId, updates as any);
+
+      await storage.createAuditLog({
+        entityType: "user",
+        entityId: userId,
+        action: "reset_contact_revert",
+        changes: {
+          before: beforeSnap,
+          after: afterSnap,
+          revertOf: original.id,
+          reason: `Reverted reset by ${(original as any).performedByEmail ?? original.performedBy ?? "unknown"}`,
+        },
+        performedBy: req.admin!.id,
+        performedByType: "admin",
+        ipAddress: req.ip,
+        userAgent: req.get("user-agent") ?? undefined,
+      });
+
+      res.json({ message: "Reverted." });
+    } catch (error) {
+      console.error("Error reverting audit log entry:", error);
+      res.status(500).json({ message: "Failed to revert" });
+    }
+  }
+);
+
+/**
  * GET /api/admin/audit-logs
  * List recent audit log entries.
  * All admin roles can view.
