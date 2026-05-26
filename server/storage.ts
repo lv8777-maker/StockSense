@@ -147,6 +147,18 @@ export interface IStorage {
   deactivateUser(userId: string): Promise<void>;
   softDeactivateReward(rewardId: string): Promise<void>;
 
+  // Audit logs
+  createAuditLog(entry: {
+    entityType: string;
+    entityId: string;
+    action: string;
+    changes?: unknown;
+    performedBy?: string;
+    performedByType: string;
+    ipAddress?: string;
+    userAgent?: string;
+  }): Promise<void>;
+
   // Password reset
   createPasswordResetToken(userId: string): Promise<string>;
   getPasswordResetToken(token: string): Promise<PasswordResetToken | undefined>;
@@ -887,6 +899,28 @@ export class DatabaseStorage implements IStorage {
     }
 
     return { processed: expiredUsers.length, expired: expiredCount };
+  }
+
+  async createAuditLog(entry: {
+    entityType: string;
+    entityId: string;
+    action: string;
+    changes?: unknown;
+    performedBy?: string;
+    performedByType: string;
+    ipAddress?: string;
+    userAgent?: string;
+  }): Promise<void> {
+    await db.insert(auditLogs).values({
+      entityType: entry.entityType,
+      entityId: entry.entityId,
+      action: entry.action,
+      changes: entry.changes as any,
+      performedBy: entry.performedBy,
+      performedByType: entry.performedByType,
+      ipAddress: entry.ipAddress,
+      userAgent: entry.userAgent,
+    });
   }
 
   async createPasswordResetToken(userId: string): Promise<string> {
