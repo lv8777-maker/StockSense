@@ -255,6 +255,31 @@ adminRouter.delete(
 );
 
 /**
+ * GET /api/admin/audit-logs
+ * List recent audit log entries.
+ * All admin roles can view.
+ * Query params: limit (1-500, default 100), action, entityType
+ */
+adminRouter.get(
+  "/audit-logs",
+  authorizeRoles(["super_admin", "admin", "manager", "analyst"]),
+  async (req, res) => {
+    try {
+      const limitRaw = Number(req.query.limit);
+      const limit = Number.isFinite(limitRaw) ? limitRaw : 100;
+      const action = typeof req.query.action === "string" && req.query.action ? req.query.action : undefined;
+      const entityType = typeof req.query.entityType === "string" && req.query.entityType ? req.query.entityType : undefined;
+
+      const logs = await storage.listAuditLogs({ limit, action, entityType });
+      res.json(logs);
+    } catch (error) {
+      console.error("Error fetching audit logs:", error);
+      res.status(500).json({ message: "Failed to fetch audit logs" });
+    }
+  }
+);
+
+/**
  * GET /api/admin/admins
  * List all admin users
  * Super Admin only

@@ -38,6 +38,7 @@ import {
   type AdminUser,
   type InsertAdminUser,
   type PasswordResetToken,
+  type AuditLog,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, sql, and, gte, lte } from "drizzle-orm";
@@ -158,6 +159,7 @@ export interface IStorage {
     ipAddress?: string;
     userAgent?: string;
   }): Promise<void>;
+  listAuditLogs(opts?: { limit?: number; action?: string; entityType?: string }): Promise<Array<AuditLog & { performedByEmail?: string | null }>>;
 
   // Password reset
   createPasswordResetToken(userId: string): Promise<string>;
@@ -921,6 +923,36 @@ export class DatabaseStorage implements IStorage {
       ipAddress: entry.ipAddress,
       userAgent: entry.userAgent,
     });
+  }
+
+  async listAuditLogs(opts: { limit?: number; action?: string; entityType?: string } = {}): Promise<Array<AuditLog & { performedByEmail?: string | null }>> {
+    const limit = Math.min(Math.max(opts.limit ?? 100, 1), 500);
+    const conditions: any[] = [];
+    if (opts.action) conditions.push(eq(auditLogs.action, opts.action));
+    if (opts.entityType) conditions.push(eq(auditLogs.entityType, opts.entityType));
+
+    const rows = await db
+      .select({
+        id: auditLogs.id,
+        entityType: auditLogs.entityType,
+        entityId: auditLogs.entityId,
+        action: auditLogs.action,
+        changes: auditLogs.changes,
+        performedBy: auditLogs.performedBy,
+        performedByType: auditLogs.performedByType,
+        ipAddress: auditLogs.ipAddress,
+        userAgent: auditLogs.userAgent,
+        sessionId: auditLogs.sessionId,
+        timestamp: auditLogs.timestamp,
+        performedByEmail: adminUsers.email,
+      })
+      .from(auditLogs)
+      .leftJoin(adminUsers, eq(adminUsers.id, auditLogs.performedBy))
+      .where(conditions.length ? and(...conditions) : undefined)
+      .orderBy(desc(auditLogs.timestamp))
+      .limit(limit);
+
+    return rows as any;
   }
 
   async createPasswordResetToken(userId: string): Promise<string> {

@@ -52,6 +52,138 @@ const createRewardSchema = insertRewardSchema.extend({
   pointsCost: z.number().min(1, "Points cost must be at least 1"),
 });
 
+type AuditLogEntry = {
+  id: string;
+  entityType: string;
+  entityId: string;
+  action: string;
+  changes: any;
+  performedBy: string | null;
+  performedByType: string;
+  performedByEmail: string | null;
+  ipAddress: string | null;
+  userAgent: string | null;
+  timestamp: string;
+};
+
+function AuditLogPanel() {
+  const [actionFilter, setActionFilter] = useState<string>("all");
+  const params = new URLSearchParams();
+  if (actionFilter !== "all") params.set("action", actionFilter);
+  params.set("limit", "200");
+  const url = `/api/admin/audit-logs?${params.toString()}`;
+
+  const { data: logs = [], isLoading } = useQuery<AuditLogEntry[]>({
+    queryKey: ["/api/admin/audit-logs", actionFilter],
+    queryFn: async () => {
+      const res = await fetch(url, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to load audit logs");
+      return res.json();
+    },
+  });
+
+  const fmtAction = (a: string) =>
+    a.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle>Audit Log</CardTitle>
+        <div className="w-56">
+          <Select value={actionFilter} onValueChange={setActionFilter}>
+            <SelectTrigger data-testid="select-audit-action">
+              <SelectValue placeholder="Filter by action" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All actions</SelectItem>
+              <SelectItem value="reset_contact">Reset contact</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="text-center py-8 text-gray-500">Loading…</div>
+        ) : logs.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">No log entries yet.</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>When</TableHead>
+                  <TableHead>Action</TableHead>
+                  <TableHead>Who</TableHead>
+                  <TableHead>Target</TableHead>
+                  <TableHead>Change</TableHead>
+                  <TableHead>IP</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {logs.map((log) => {
+                  const before = log.changes?.before ?? {};
+                  const after = log.changes?.after ?? {};
+                  const reason = log.changes?.reason as string | null | undefined;
+                  const fields = Array.from(
+                    new Set([...Object.keys(before), ...Object.keys(after)])
+                  );
+                  return (
+                    <TableRow key={log.id} data-testid={`row-audit-${log.id}`}>
+                      <TableCell className="text-xs text-gray-600 whitespace-nowrap">
+                        {new Date(log.timestamp).toLocaleString()}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">{fmtAction(log.action)}</Badge>
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        <div className="font-medium text-gray-900">
+                          {log.performedByEmail || "—"}
+                        </div>
+                        <div className="text-xs text-gray-500">{log.performedByType}</div>
+                      </TableCell>
+                      <TableCell className="font-mono text-xs">
+                        {log.entityType}/{log.entityId.slice(0, 8)}…
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {fields.length === 0 ? (
+                          <span className="text-gray-400">—</span>
+                        ) : (
+                          <div className="space-y-1">
+                            {fields.map((f) => (
+                              <div key={f} className="text-xs">
+                                <span className="font-medium">{f}:</span>{" "}
+                                <span className="text-red-600 line-through">
+                                  {String((before as any)[f] ?? "∅")}
+                                </span>{" "}
+                                →{" "}
+                                <span className="text-green-700">
+                                  {String((after as any)[f] ?? "∅")}
+                                </span>
+                              </div>
+                            ))}
+                            {reason && (
+                              <div className="text-xs text-gray-500 italic">
+                                Reason: {reason}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-xs text-gray-500 font-mono">
+                        {log.ipAddress || "—"}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 type CreateRewardFormData = z.infer<typeof createRewardSchema>;
 
 export default function Admin() {
@@ -294,6 +426,7 @@ export default function Admin() {
           <TabsTrigger value="customers" data-testid="tab-customers">Customer Management</TabsTrigger>
           <TabsTrigger value="rewards" data-testid="tab-rewards">Rewards Management</TabsTrigger>
           <TabsTrigger value="analytics" data-testid="tab-analytics">Analytics</TabsTrigger>
+          <TabsTrigger value="audit" data-testid="tab-audit">Audit Log</TabsTrigger>
         </TabsList>
 
         {/* Customer Management Tab */}
@@ -594,6 +727,11 @@ export default function Admin() {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        {/* Audit Log Tab */}
+        <TabsContent value="audit">
+          <AuditLogPanel />
         </TabsContent>
       </Tabs>
       </div>
