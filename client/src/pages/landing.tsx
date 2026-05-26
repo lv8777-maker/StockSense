@@ -196,9 +196,12 @@ export default function Landing() {
             <p className="text-gray-400">
               Advanced loyalty programs for telecom excellence.
             </p>
-            <p className="mt-4 text-sm">
+            <p className="mt-4 text-sm space-x-4">
               <a href="/privacy" className="text-gray-300 hover:text-yellow-400 underline" data-testid="link-privacy">
                 Privacy Policy
+              </a>
+              <a href="/terms" className="text-gray-300 hover:text-yellow-400 underline" data-testid="link-terms">
+                Terms of Service
               </a>
             </p>
           </div>
