@@ -58,7 +58,7 @@ export interface IStorage {
   
   // Email authentication methods
   getUserByEmail(email: string): Promise<User | undefined>;
-  createUserWithEmail(userData: { email: string; password: string; firstName: string; lastName: string; phoneNumber: string; currentPlan?: string }): Promise<User>;
+  createUserWithEmail(userData: { email: string; password: string; firstName: string; lastName: string; phoneNumber: string; currentPlan?: string; termsVersion?: string }): Promise<User>;
   validateUserPassword(email: string, password: string): Promise<User | null>;
 
   // Email + phone verification
@@ -240,7 +240,7 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async createUserWithEmail(userData: { email: string; password: string; firstName: string; lastName: string; phoneNumber: string; currentPlan?: string }): Promise<User> {
+  async createUserWithEmail(userData: { email: string; password: string; firstName: string; lastName: string; phoneNumber: string; currentPlan?: string; termsVersion?: string }): Promise<User> {
     // All new members start at Starter tier — tier progresses via receipt scanning
     const membershipTier = 'starter';
 
@@ -260,6 +260,8 @@ export class DatabaseStorage implements IStorage {
         emailNotifications: true,
         pushNotifications: false,
         marketingMessages: true,
+        termsAcceptedAt: new Date(),
+        termsVersion: userData.termsVersion || null,
       })
       .returning();
 
