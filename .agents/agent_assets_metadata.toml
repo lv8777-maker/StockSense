@@ -24,3 +24,9 @@ id = "A2bYK5VHauKJyygNM1nJd"
 uri = "file://exports/CustomerConnect-Launch-Plan.pptx"
 type = "slides"
 title = "CustomerConnect Two-Week Launch Plan"
+
+[[outputs]]
+id = "ybeFaiNfGFjtUdsrL6BIE"
+uri = "file://exports/CustomerConnect-Launch-Plan.pdf"
+type = "pdf"
+title = "CustomerConnect Launch Plan (PDF)"
