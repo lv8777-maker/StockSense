@@ -36,3 +36,9 @@ id = "O0FqnveiH-zGHhqCD5txn"
 uri = "file://exports/CustomerConnect-Operations-Guide.pdf"
 type = "pdf"
 title = "CustomerConnect Operations Guide (PDF)"
+
+[[outputs]]
+id = "c6AXAeriQnr78WypEFDQ_"
+uri = "file://exports/CustomerConnect-Staff-Guide.pdf"
+type = "pdf"
+title = "CustomerConnect Staff Guide (PDF)"
