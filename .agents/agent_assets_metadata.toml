@@ -30,3 +30,9 @@ id = "ybeFaiNfGFjtUdsrL6BIE"
 uri = "file://exports/CustomerConnect-Launch-Plan.pdf"
 type = "pdf"
 title = "CustomerConnect Launch Plan (PDF)"
+
+[[outputs]]
+id = "O0FqnveiH-zGHhqCD5txn"
+uri = "file://exports/CustomerConnect-Operations-Guide.pdf"
+type = "pdf"
+title = "CustomerConnect Operations Guide (PDF)"
