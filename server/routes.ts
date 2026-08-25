@@ -231,21 +231,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/transactions', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const { type, amount, description, category, orderId } = req.body;
-      
+      // category isn't a transactions table column (it only feeds points-rule
+      // calculation), so it's read directly rather than through the insert schema.
+      const { category } = req.body;
+      const validated = insertTransactionSchema.parse({
+        ...req.body,
+        userId,
+      });
+
       // Use points engine for transaction processing
       const transactionId = await pointsEngineService.recordTransaction(userId, {
-        type,
-        amount: parseFloat(amount?.toString() || '0'),
-        description,
-        orderId,
+        type: validated.type,
+        amount: validated.amount != null ? parseFloat(validated.amount.toString()) : undefined,
+        description: validated.description,
+        orderId: validated.orderId ?? undefined,
         category,
       });
-      
+
       res.json({ id: transactionId, message: "Transaction processed successfully" });
     } catch (error) {
       console.error("Error creating transaction:", error);
-      res.status(500).json({ message: "Failed to create transaction" });
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid transaction data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to create transaction" });
+      }
     }
   });
 
@@ -631,25 +641,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching activity:", error);
       res.status(500).json({ message: "Failed to fetch activity" });
-    }
-  });
-
-  app.post('/api/transactions', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const transactionData = insertTransactionSchema.parse({
-        ...req.body,
-        userId,
-      });
-      const transaction = await storage.createTransaction(transactionData);
-      res.json(transaction);
-    } catch (error) {
-      console.error("Error creating transaction:", error);
-      if (error instanceof z.ZodError) {
-        res.status(400).json({ message: "Invalid transaction data", errors: error.errors });
-      } else {
-        res.status(500).json({ message: "Failed to create transaction" });
-      }
     }
   });
 
