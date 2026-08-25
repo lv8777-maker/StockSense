@@ -5,6 +5,13 @@ import { setupVite, serveStatic, log } from "./vite";
 import { doubleCsrf } from "csrf-csrf";
 import { getSession } from "./phoneAuth";
 
+if (!process.env.CSRF_SECRET) {
+  throw new Error(
+    "CSRF_SECRET environment variable is required but not set. " +
+    "Set it as a Secret (Replit Secrets pane or .env, never hardcoded) before starting the server."
+  );
+}
+
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -20,7 +27,7 @@ app.use(getSession());
 
 // CSRF Protection setup - comes after session
 const csrfUtilities = doubleCsrf({
-  getSecret: () => process.env.CSRF_SECRET || "default-csrf-secret-change-in-production",
+  getSecret: () => process.env.CSRF_SECRET as string,
   getSessionIdentifier: (req) => (req as any).sessionID || "anonymous", // Uses express-session's sessionID
   cookieName: "x-csrf-token",
   cookieOptions: {
