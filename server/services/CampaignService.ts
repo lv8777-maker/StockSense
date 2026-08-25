@@ -1,6 +1,6 @@
 import { db } from '../db';
 import { campaigns, users, type InsertCampaign, type Campaign } from '@shared/schema';
-import { eq, and, gte, lte, sql } from 'drizzle-orm';
+import { eq, and, gte, lte, inArray, sql } from 'drizzle-orm';
 
 export interface CampaignRules {
   pointsMultiplier?: number;
@@ -224,14 +224,64 @@ export class CampaignService {
       throw new Error('Campaign not found');
     }
 
-    // TODO: Implement proper analytics calculations
-    // This would involve querying transactions, user engagement, etc.
-    
+    // Total engagement = number of times campaign benefits were applied to a
+    // transaction (currentParticipants is incremented once per qualifying
+    // transaction in applyCampaignBenefits, so it's a count of applications,
+    // not necessarily unique users).
+    const totalEngagement = campaign.currentParticipants ?? 0;
+
+    // Participation rate = engagement as a share of the campaign's eligible
+    // audience, using the same criteria isUserEligibleForCampaign checks per
+    // user (tiers / points range / registration date), run here as a bulk
+    // count. No targetAudience set means every user is eligible.
+    const targetAudience = campaign.targetAudience as CampaignTargetAudience | null;
+    const eligibilityConditions: any[] = [];
+
+    if (targetAudience?.tiers && targetAudience.tiers.length > 0) {
+      eligibilityConditions.push(
+        inArray(sql`coalesce(${users.membershipTier}, 'bronze')`, targetAudience.tiers)
+      );
+    }
+    if (targetAudience?.minPoints != null) {
+      eligibilityConditions.push(gte(users.totalPoints, targetAudience.minPoints));
+    }
+    if (targetAudience?.maxPoints != null) {
+      eligibilityConditions.push(lte(users.totalPoints, targetAudience.maxPoints));
+    }
+    if (targetAudience?.registrationDateRange) {
+      eligibilityConditions.push(
+        gte(users.memberSince, targetAudience.registrationDateRange.start),
+        lte(users.memberSince, targetAudience.registrationDateRange.end)
+      );
+    }
+
+    const [{ count: eligibleUserCount }] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(users)
+      .where(eligibilityConditions.length > 0 ? and(...eligibilityConditions) : undefined);
+
+    const participationRate = eligibleUserCount > 0
+      ? Math.round((totalEngagement / eligibleUserCount) * 100 * 100) / 100 // percentage, 2dp
+      : 0;
+
+    // ROI is intentionally left as a placeholder. The schema tracks a
+    // per-campaign `budget` (cost side), but there is no linkage from
+    // transactions/redemptions back to the campaign that earned them and no
+    // points-to-currency conversion rate stored anywhere, so the "return"
+    // side of ROI can't be computed from real data — only fabricated by
+    // guessing a value. Revisit once campaign-attributed revenue (or a
+    // points valuation) is tracked; average purchase value tied to a
+    // campaign would be the natural next field to add alongside it.
+    const roi = 0;
+
     return {
-      participationRate: 0,
-      totalEngagement: campaign.currentParticipants ?? 0,
+      participationRate,
+      totalEngagement,
+      // averageSpend has the same unattributed-transaction problem as roi
+      // above (no campaignId on transactions to sum spend by) — out of
+      // scope for this pass, left as-is rather than reworked here.
       averageSpend: 0,
-      roi: 0,
+      roi,
     };
   }
 
