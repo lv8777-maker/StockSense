@@ -32,16 +32,73 @@ async function getSendGrid() {
   return sgMailPromise;
 }
 
+// Backoff schedule between attempts, in ms. Two entries = up to 2 retries
+// (3 attempts total) on transient failures only.
+const RETRY_DELAYS_MS = [500, 1500];
+
+const RETRYABLE_NETWORK_CODES = new Set([
+  'ECONNRESET',
+  'ETIMEDOUT',
+  'ECONNREFUSED',
+  'ENOTFOUND',
+  'EAI_AGAIN',
+]);
+
+// Distinguishes transient failures (network blips, SendGrid 5xx) worth
+// retrying from validation failures (bad API key, invalid `from` address,
+// malformed payload) that will fail identically on every retry.
+function isRetryableSendGridError(err: any): boolean {
+  // No HTTP response at all (err.code is a string like 'ECONNRESET', or
+  // there's no response/code info whatsoever) means the request never made
+  // it to SendGrid — treat as a network-layer failure.
+  if (typeof err?.code === 'string') {
+    return RETRYABLE_NETWORK_CODES.has(err.code);
+  }
+
+  // @sendgrid/mail surfaces the HTTP status as a numeric `err.code`, with
+  // `err.response.statusCode` as a fallback depending on the failure path.
+  const status = typeof err?.code === 'number' ? err.code : err?.response?.statusCode;
+  if (typeof status === 'number') return status >= 500;
+
+  // Unknown shape (e.g. a bare Error with no code/response) — assume it's a
+  // network-level problem rather than a validation one, so it's still worth
+  // one retry before falling back to the console-log path.
+  return true;
+}
+
+async function sendWithRetry(
+  sg: any,
+  payload: { to: string; from: string; subject: string; text: string }
+): Promise<void> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      await sg.send(payload);
+      return;
+    } catch (err: any) {
+      const attemptsRemaining = RETRY_DELAYS_MS.length - attempt;
+      if (attemptsRemaining <= 0 || !isRetryableSendGridError(err)) {
+        throw err;
+      }
+      const delayMs = RETRY_DELAYS_MS[attempt];
+      console.warn(
+        `SendGrid send failed (attempt ${attempt + 1}/${RETRY_DELAYS_MS.length + 1}), retrying in ${delayMs}ms:`,
+        err?.message ?? err
+      );
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+}
+
 export async function sendEmail(msg: OutgoingEmail): Promise<{ delivered: boolean }> {
   const sg = await getSendGrid();
   const fromAddress = process.env.MAIL_FROM_ADDRESS || 'no-reply@maverick-loyalty.local';
 
   if (sg && process.env.MAIL_FROM_ADDRESS) {
     try {
-      await sg.send({ to: msg.to, from: fromAddress, subject: msg.subject, text: msg.text });
+      await sendWithRetry(sg, { to: msg.to, from: fromAddress, subject: msg.subject, text: msg.text });
       return { delivered: true };
     } catch (err) {
-      console.error('SendGrid send failed, falling back to console:', err);
+      console.error('SendGrid send failed after retries, falling back to console:', err);
     }
   }
 
