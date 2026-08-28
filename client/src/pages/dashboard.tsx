@@ -26,6 +26,13 @@ import {
 } from "lucide-react";
 import type { Offer, Reward } from "@shared/schema";
 import {
+  dashboardActivityResponseSchema,
+  dashboardStatsResponseSchema,
+  pointsExpiryResponseSchema,
+  type DashboardActivityResponse,
+  type DashboardStatsResponse,
+  type PointsExpiryResponse,
+} from "@shared/apiContracts";
 import { parseApiResponse } from "@/lib/apiResponse";
 
 export default function Dashboard() {
