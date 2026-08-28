@@ -23,7 +23,9 @@ export default function EmailRegistration() {
     acceptedTerms: false,
   });
   const TERMS_VERSION = "2026-05-26";
-  const [isLogin, setIsLogin] = useState(true);
+  const [isLogin, setIsLogin] = useState(
+    () => new URLSearchParams(window.location.search).get("mode") !== "signup",
+  );
   const [errors, setErrors] = useState<Record<string, string>>({});
   const { toast } = useToast();
   const queryClient = useQueryClient();

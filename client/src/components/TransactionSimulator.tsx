@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { ShoppingCart, Zap, Gift, CreditCard } from "lucide-react";
+import { transactionCreationResponseSchema } from "@shared/apiContracts";
+import { parseApiResponse } from "@/lib/apiResponse";
 
 interface TransactionSimulatorProps {
   currentPoints: number;
@@ -22,10 +24,10 @@ export default function TransactionSimulator({ currentPoints }: TransactionSimul
 
   const transactionMutation = useMutation({
     mutationFn: async (transactionData: any) => {
-      return await apiRequest("/api/transactions", {
-        method: "POST",
-        body: JSON.stringify(transactionData),
-      });
+      return parseApiResponse(
+        await apiRequest("POST", "/api/transactions", transactionData),
+        transactionCreationResponseSchema,
+      );
     },
     onSuccess: (data) => {
       toast({

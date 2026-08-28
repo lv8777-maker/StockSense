@@ -43,10 +43,12 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { insertRewardSchema } from "@shared/schema";
+import { insertRewardSchema, type Reward, type User } from "@shared/schema";
 import { Users, Gift, Coins, TrendingUp, Download, Plus, Clock, AlertTriangle, KeyRound } from "lucide-react";
 import { z } from "zod";
 import Navbar from "@/components/Navbar";
+import { adminStatsResponseSchema, type AdminStatsResponse } from "@shared/apiContracts";
+import { parseApiResponse } from "@/lib/apiResponse";
 
 const createRewardSchema = insertRewardSchema.extend({
   pointsCost: z.number().min(1, "Points cost must be at least 1"),
@@ -263,15 +265,19 @@ export default function Admin() {
     },
   });
 
-  const { data: adminStats } = useQuery({
+  const { data: adminStats } = useQuery<AdminStatsResponse>({
     queryKey: ["/api/admin/stats"],
+    queryFn: async () => parseApiResponse(
+      await fetch("/api/admin/stats", { credentials: "include" }),
+      adminStatsResponseSchema,
+    ),
   });
 
-  const { data: allUsers = [] } = useQuery({
+  const { data: allUsers = [] } = useQuery<User[]>({
     queryKey: ["/api/admin/users"],
   });
 
-  const { data: allRewards = [] } = useQuery({
+  const { data: allRewards = [] } = useQuery<Reward[]>({
     queryKey: ["/api/admin/rewards"],
   });
 

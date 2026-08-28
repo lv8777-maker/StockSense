@@ -5,7 +5,8 @@ generated = []
 id = "2YowHpfSyihNEpTGKCGFt"
 uri = "file://presentations/point-allocation-discussion.pptx"
 type = "slides"
-title = "Point Allocation & Recommendation — 7-slide deck"
+title = "Point Allocation Discussion"
+description = "The CustomerConnect presentation covering points allocation and logistics."
 
 [[outputs]]
 id = "PSjakCDKdnbtlPsA35Gc2"
@@ -42,3 +43,10 @@ id = "c6AXAeriQnr78WypEFDQ_"
 uri = "file://exports/CustomerConnect-Staff-Guide.pdf"
 type = "pdf"
 title = "CustomerConnect Staff Guide (PDF)"
+
+[[outputs]]
+id = "bd75e4Vch-iLEXj4Thqtf"
+uri = "file://exports/CustomerConnect-TypeScript-Error-Findings.docx"
+type = "word_document"
+title = "CustomerConnect TypeScript Error Findings"
+description = "Word document containing the executive summary, all 26 TypeScript findings, impacts, and recommended remediation priorities."

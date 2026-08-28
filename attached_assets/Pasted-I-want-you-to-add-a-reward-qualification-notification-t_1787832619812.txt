@@ -1,0 +1,67 @@
+I want you to add a reward-qualification notification to the Dashboard, triggered by the receipt-upload flow. Read the existing code before changing anything — most of the points/rewards/redemption plumbing already exists; extend it, don't duplicate it.
+
+What already exists (confirm this yourself, then build on it)
+POST /api/receipts/upload in server/routes.ts is the working receipt-upload route (uses combinedAuth + multer). It calls processReceiptImage() from server/receiptProcessor.ts, then — if processed.pointsAwarded > 0 — calls storage.createTransaction({ ...pointsEarned: processed.pointsAwarded... }) to award points.
+client/src/pages/SubmitPurchase.tsx is the frontend page for this flow (NOT UploadInvoice.tsx — that's the separate MTN invoice flow from an earlier task). Its upload mutation's onSuccess currently invalidates ["/api/receipts"], ["/api/auth/user"], and ["/api/transactions"]. It does not navigate anywhere after a successful upload — the user stays on this page, seeing an inline "Receipt Processed!" confirmation and an "Upload History" panel below it.
+The Dashboard is two separate components, not one: client/src/pages/dashboard.tsx (desktop) and client/src/components/MobileOptimizedDashboard.tsx (rendered instead of dashboard.tsx's own JSX when useResponsive().isMobile is true). Both fetch /api/dashboard/stats and /api/dashboard/activity independently and both will need the new notification UI — this is not one component with a responsive layout, it's two parallel trees.
+The global React Query client (client/src/lib/queryClient.ts) is configured with staleTime: Infinity and refetchOnWindowFocus: false. This means once a query is cached in a session, it will NOT auto-refetch just because the user navigates to that page again — it only refetches when explicitly invalidated/refetched, or on a full page reload. rewards.tsx's redemption flow already works around this by calling queryClient.refetchQueries(...) for /api/auth/user and /api/dashboard/stats in its onSuccess. Follow the same pattern here (see step 3).
+storage.getActiveRewards() returns active, non-expired rewards ordered by pointsCost.
+POST /api/redemptions already implements "redeem a reward": validates the user has enough points, creates a redemptions row, and creates a deducting transaction via storage.createTransaction. Reuse this endpoint for "redeem now" — client/src/pages/rewards.tsx's redeemMutation shows the exact request shape to match: POST with JSON body { rewardId, pointsSpent }, credentials: "include".
+There is a separate, unused points/loyalty system in server/services/PointsEngineService.ts (its own tiers, loyaltyAccounts, earning rules/campaigns). Do not touch it. The receipt-upload flow does not use it today; keep this feature entirely inside the existing storage.createTransaction → users.totalPoints → rewards/redemptions path.
+1. Capture before/after balance and persist "newly qualified" rewards
+This assumes POST /api/receipts/upload awards points correctly via a single call to storage.createTransaction(...) (points-awarding is already correct as of 2026-08-27 — do not add or modify any point-crediting logic beyond what's described below).
+
+In POST /api/receipts/upload, before the existing storage.createTransaction(...) call:
+
+Fetch the user's current balance via storage.getUser(userId) — this route doesn't currently fetch the user first, unlike the invoice-upload route, so add this call.
+After storage.createTransaction(...):
+
+Re-fetch the user via storage.getUser(userId) to get the actual post-award balance.
+Fetch active rewards via storage.getActiveRewards().
+A reward is newly qualified if balanceBefore < reward.pointsCost and balanceAfter >= reward.pointsCost. If more than one reward newly qualifies, treat all of them as newly qualified — not just the cheapest.
+For each newly-qualified reward, insert a row into a new table (see schema below) recording that this user newly qualified for this reward, tied to the transaction that caused it. Do this instead of only returning it in the upload response, because — per the note above — the user does not get navigated to the Dashboard after upload, so the response payload alone would never reach the surface where the owner wants it shown.
+New table — add to shared/schema.ts, following the existing style (varchar UUID PK via gen_random_uuid(), FK references, createInsertSchema for the insert type):
+
+export const rewardNotifications = pgTable("reward_notifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  rewardId: varchar("reward_id").notNull().references(() => rewards.id),
+  sourceTransactionId: varchar("source_transaction_id").references(() => transactions.id),
+  status: varchar("status").default('pending'), // pending, redeemed, dismissed
+  createdAt: timestamp("created_at").defaultNow(),
+  resolvedAt: timestamp("resolved_at"),
+});
+
+export const insertRewardNotificationSchema = createInsertSchema(rewardNotifications).omit({
+  id: true,
+  createdAt: true,
+  resolvedAt: true,
+});
+Add corresponding IStorage methods in server/storage.ts, matching existing naming conventions (e.g. getActiveRewards, createRedemption):
+
+createRewardNotification(notification: InsertRewardNotification): Promise<RewardNotification>
+getPendingRewardNotifications(userId: string): Promise<RewardNotification[]> — join or enrich with the reward's name, pointsCost, category, imageUrl so the frontend doesn't need a second round-trip. Filter status = 'pending', order by createdAt.
+resolveRewardNotification(id: string, status: 'redeemed' | 'dismissed'): Promise<void> — sets status and resolvedAt.
+Run npm run db:push (or the repo's existing drizzle-kit convention) to apply the schema change — check how prior schema changes in this repo were applied (e.g. the packages table) and follow the same approach.
+
+2. New Dashboard endpoint + wiring so it actually reaches the Dashboard
+Add GET /api/dashboard/reward-notifications in server/routes.ts, using isAuthenticated and req.user.claims.sub — matching the exact pattern of the sibling /api/dashboard/stats and /api/dashboard/activity routes already in this file (not combinedAuth, since that's specific to the receipt-upload route's dual phone/email auth need — match what the other dashboard endpoints already do). Returns the array from storage.getPendingRewardNotifications(userId).
+
+Add PATCH /api/dashboard/reward-notifications/:id (same auth pattern), body { action: 'redeem' | 'dismiss' }:
+
+dismiss: calls storage.resolveRewardNotification(id, 'dismissed'), returns success. No points change.
+redeem: this is a convenience wrapper, not a second redemption code path — internally it should call the same logic POST /api/redemptions already runs (validate points, storage.createRedemption, storage.createTransaction with type: 'redemption'), then also call storage.resolveRewardNotification(id, 'redeemed'). If it's simpler given how this route is structured, an equally acceptable alternative is: frontend calls POST /api/redemptions directly (exactly as rewards.tsx does today) and then a separate lightweight call marks the notification resolved — pick whichever keeps POST /api/redemptions as the single source of truth for redemption logic, per the existing pattern. Do not reimplement the points-deduction/redemption-creation logic a second time either way.
+In both client/src/pages/dashboard.tsx and client/src/components/MobileOptimizedDashboard.tsx:
+
+Add useQuery({ queryKey: ["/api/dashboard/reward-notifications"] }).
+When the array is non-empty, render a notification card/banner per pending entry (reuse the visual style of an existing reward card in client/src/pages/rewards.tsx for consistency — image, name, pointsCost), with two buttons:
+"Redeem now" — calls the redeem action above, then on success shows a confirmation toast and invalidates/refetches ["/api/auth/user"], ["/api/dashboard/stats"], ["/api/dashboard/reward-notifications"], ["/api/redemptions"] — mirroring exactly what rewards.tsx's redeemMutation.onSuccess already does.
+"Save for later" — calls the dismiss action, then invalidates ["/api/dashboard/reward-notifications"] so the card disappears. The reward remains normally redeemable later from the Rewards page regardless of this dismissal.
+If there is more than one pending notification, show all of them (stacked cards or a small carousel — your call on layout, just don't drop any).
+In client/src/pages/SubmitPurchase.tsx's upload onSuccess: add queryClient.invalidateQueries({ queryKey: ["/api/dashboard/reward-notifications"] }) alongside the existing invalidations. This is required, not optional — because of the app's global staleTime: Infinity, if the user already visited the Dashboard earlier in this browser session, its cached queries will not refresh on their own when the user navigates back to it after uploading a receipt. Without this explicit invalidation, a same-session user could upload a qualifying receipt and never see the notification until they fully reload the app. While you're at it, also invalidate ["/api/dashboard/stats"] and ["/api/dashboard/activity"] here for the same reason (their absence today is a pre-existing gap — the points total showing on Dashboard can go stale after an upload in the same session — worth closing since you're already touching this exact list).
+
+Constraints
+Don't touch PointsEngineService.ts, loyaltyAccounts, or the earning-rules/campaigns system.
+Don't build a second redemption code path — POST /api/redemptions (or logic that calls the same storage functions it does) is the only place points get deducted for a reward.
+Follow existing error-handling conventions (JSON { message } bodies, appropriate status codes) and existing TypeScript/Drizzle patterns in storage.ts/shared/schema.ts.
+When done, tell me: (a) the exact file names touched, (b) how you tested the full flow — seed a user close to a reward's pointsCost, upload a qualifying receipt, confirm the Dashboard (both desktop and mobile-width) shows the notification, and confirm both "redeem now" and "save for later" work, including a same-session navigate-away-then-back test (upload, go elsewhere, then check Dashboard) to confirm the notification isn't lost.

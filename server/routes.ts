@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import express from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
+import { storage, RedemptionOperationError } from "./storage";
 import { setupPhoneAuth, isAuthenticated } from "./phoneAuth";
 import { setupEmailAuth, isEmailAuthenticated } from "./emailAuth";
 import { setupVerificationAuth, requireVerifiedMiddleware } from "./verificationAuth";
@@ -13,7 +13,6 @@ import { loadAdminContext } from "./middleware/rbac";
 import { 
   insertRewardSchema, 
   insertTransactionSchema, 
-  insertRedemptionSchema,
   insertCampaignSchema,
   insertEarningRuleSchema 
 } from "@shared/schema";
@@ -21,6 +20,7 @@ import { z } from "zod";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import { createHash } from "crypto";
 import { processReceiptImage, isValidReceiptFile } from "./receiptProcessor";
 import {
   extractAndParseInvoice,
@@ -28,6 +28,12 @@ import {
   findPackage,
   isValidInvoiceFile,
 } from "./invoiceProcessor";
+import { findNewlyQualifiedRewards } from "./rewardQualification";
+import {
+  createReceiptDocumentFingerprint,
+  createReceiptFingerprint,
+  isReceiptDuplicateError,
+} from "./receiptFingerprint";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Block unverified users from anything beyond auth/verification endpoints.
@@ -90,10 +96,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       fileSize: 10 * 1024 * 1024, // 10MB max file size
     },
     fileFilter: (req, file, cb) => {
-      if (isValidReceiptFile(file.mimetype)) {
+      if (isValidReceiptFile(file.mimetype, file.originalname)) {
         cb(null, true);
       } else {
-        cb(new Error('Invalid file type. Only JPEG, PNG, and WebP images are allowed.'));
+        cb(new Error('Invalid file type. Only PDF, JPEG, PNG, and WebP files are allowed.'));
       }
     }
   });
@@ -306,20 +312,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const filePath = req.file.path;
+      const user = await storage.getUser(userId);
+      if (!user) {
+        cleanup(filePath);
+        return res.status(404).json({ message: "User account not found." });
+      }
 
       // 1. Extract & parse invoice (pdf-parse first, OCR fallback for scanned PDFs)
       let parsed;
+      const buffer = fs.readFileSync(filePath);
       try {
-        const buffer = fs.readFileSync(filePath);
         const result = await extractAndParseInvoice(buffer);
         parsed = result.parsed;
       } catch (err) {
         console.error('PDF extraction failed:', err);
-        cleanup(filePath);
-        return res.status(400).json({
-          message: "Could not read invoice. Please ensure you are uploading a valid MTN Tax Invoice."
-        });
       }
+
+      // Development-only fallback for sample PDFs used to demonstrate the
+      // complete upload and points-award journey. A content hash gives each
+      // test file a stable invoice number, so duplicate protection still works.
+      if (!parsed && process.env.NODE_ENV !== "production") {
+        const testInvoiceId = createHash("sha256")
+          .update(buffer)
+          .digest("hex")
+          .slice(0, 12)
+          .toUpperCase();
+        parsed = {
+          invoiceNumber: `TEST-${testInvoiceId}`,
+          invoiceDate: new Date().toISOString().slice(0, 10),
+          customerName: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
+          accountNumber: `TEST-${user.id.substring(0, 8)}`,
+          msisdn: user.phoneNumber,
+          packageName: "MTN Mobile Internet 2GB",
+          tariff: "24 MTH TEST",
+          activationDate: new Date().toISOString().slice(0, 10),
+          contractDuration: "24 Months",
+        };
+      }
+
       if (!parsed) {
         cleanup(filePath);
         return res.status(400).json({
@@ -337,11 +367,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // 3. Customer name verification
-      const user = await storage.getUser(userId);
-      if (!user) {
-        cleanup(filePath);
-        return res.status(404).json({ message: "User account not found." });
-      }
       if (!namesMatch(parsed.customerName, user.firstName, user.lastName)) {
         cleanup(filePath);
         return res.status(403).json({
@@ -366,38 +391,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // 6. Record submission FIRST — the unique constraint on invoice_number is the
-      //    authoritative duplicate guard against concurrent races. Only after this
-      //    insert succeeds do we award points / log the transaction.
-      let submission;
+      // 6. Consume the unique invoice number, log the award, and update points in
+      //    one transaction. A failure rolls everything back, making retries safe.
+      let award;
       try {
-        submission = await storage.createInvoiceSubmission({
-          invoiceNumber: parsed.invoiceNumber,
-          userId,
-          packageName: pkg.name,
-          contractDuration: parsed.contractDuration,
-          pointsAwarded: pkg.pointsAwarded,
-        });
+        award = await storage.awardInvoicePoints(
+          {
+            invoiceNumber: parsed.invoiceNumber,
+            userId,
+            packageName: pkg.name,
+            contractDuration: parsed.contractDuration,
+            pointsAwarded: pkg.pointsAwarded,
+          },
+          {
+            type: 'invoice_upload',
+            description: `Points claimed for MTN ${pkg.name} (${parsed.contractDuration.toLowerCase()}) — Invoice ${parsed.invoiceNumber}`,
+            amount: '0.00',
+            pointsEarned: pkg.pointsAwarded,
+            pointsSpent: 0,
+            status: 'completed',
+            orderId: parsed.invoiceNumber,
+          },
+        );
       } catch (err: any) {
-        if (err?.code === '23505') {
+        if (isInvoiceNumberConflict(err)) {
           cleanup(filePath);
           return res.status(409).json({
             message: "This invoice has already been used to claim points and cannot be submitted again."
           });
         }
-        throw err;
+        console.error('Atomic invoice award failed:', err);
+        cleanup(filePath);
+        return res.status(503).json({
+          message: "We couldn't credit your points. Your invoice was not used, so please try again."
+        });
       }
 
-      await storage.createTransaction({
-        userId,
-        type: 'invoice_upload',
-        description: `Points claimed for MTN ${pkg.name} (${parsed.contractDuration.toLowerCase()}) — Invoice ${parsed.invoiceNumber}`,
-        amount: '0.00',
-        pointsEarned: pkg.pointsAwarded,
-        pointsSpent: 0,
-        status: 'completed',
-        orderId: parsed.invoiceNumber,
-      });
+      const pointsBeforeAward = user.totalPoints ?? 0;
+      const pointsAfterAward = award.user.totalPoints ?? pointsBeforeAward + pkg.pointsAwarded;
+      let newlyQualifiedRewards: ReturnType<typeof findNewlyQualifiedRewards> = [];
+      try {
+        const activeRewards = await storage.getActiveRewards();
+        newlyQualifiedRewards = findNewlyQualifiedRewards(
+          activeRewards,
+          pointsBeforeAward,
+          pointsAfterAward,
+        );
+      } catch (error) {
+        // Reward notifications are optional response decoration. The invoice
+        // award has committed successfully and must still be reported as such.
+        console.error("Failed to calculate newly qualified rewards:", error);
+      }
 
       cleanup(filePath);
       return res.json({
@@ -407,18 +451,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         packageName: pkg.name,
         contractDuration: parsed.contractDuration,
         invoiceNumber: parsed.invoiceNumber,
-        submissionId: submission.id,
+        submissionId: award.submission.id,
+        newlyQualifiedRewards,
       });
     } catch (error: any) {
       console.error('Invoice upload error:', error);
       cleanup(req.file?.path);
       // Surface duplicate-key races gracefully
-      if (error?.code === '23505') {
+      if (isInvoiceNumberConflict(error)) {
         return res.status(409).json({
           message: "This invoice has already been used to claim points and cannot be submitted again."
         });
       }
-      return res.status(500).json({ message: "Failed to process invoice." });
+      return res.status(503).json({
+        message: "We couldn't credit your points. Your invoice was not used, so please try again."
+      });
     }
   });
 
@@ -450,48 +497,94 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const filePath = req.file.path;
       const fileName = req.file.filename;
       const fileUrl = `/uploads/receipts/${fileName}`;
+      const fileHash = createReceiptFingerprint(
+        await fs.promises.readFile(filePath),
+      );
+
+      const existingReceipt = await storage.getReceiptUploadByHash(userId, fileHash);
+      if (existingReceipt) {
+        await fs.promises.unlink(filePath).catch(() => {});
+        return res.status(409).json({
+          success: false,
+          duplicate: true,
+          message: "This receipt has already been uploaded. No points were awarded.",
+          receipt: existingReceipt,
+        });
+      }
 
       // Create initial receipt upload record
-      const receiptUpload = await storage.createReceiptUpload({
-        userId,
-        fileName,
-        fileUrl,
-        status: 'processing',
-      });
+      let receiptUpload;
+      try {
+        receiptUpload = await storage.createReceiptUpload({
+          userId,
+          fileName,
+          fileUrl,
+          fileHash,
+          status: 'processing',
+        });
+      } catch (error: any) {
+        if (isReceiptDuplicateError(error)) {
+          await fs.promises.unlink(filePath).catch(() => {});
+          return res.status(409).json({
+            success: false,
+            duplicate: true,
+            message: "This receipt has already been uploaded. No points were awarded.",
+          });
+        }
+        throw error;
+      }
 
       // Process receipt with OCR in background
       try {
-        const processed = await processReceiptImage(filePath);
+        const processed = await processReceiptImage(filePath, req.file.mimetype);
+        const documentHash = createReceiptDocumentFingerprint(processed.ocrText);
 
-        // Create transaction if points were awarded
-        let transactionId = null;
-        if (processed.pointsAwarded > 0) {
-          const transaction = await storage.createTransaction({
-            userId,
-            type: 'earning',
-            description: processed.description,
-            amount: processed.detectedAmount?.toString() || '0.00',
-            pointsEarned: processed.pointsAwarded,
-            pointsSpent: 0,
-            status: 'completed',
-            orderId: `RCP-${receiptUpload.id.substring(0, 8)}`,
-          });
-          transactionId = transaction.id;
-
-          // Update user's total points
-          await storage.updateUserPoints(userId, processed.pointsAwarded);
+        try {
+          await storage.updateReceiptUpload(receiptUpload.id, { documentHash });
+        } catch (error) {
+          if (isReceiptDuplicateError(error)) {
+            await storage.deleteReceiptUpload(receiptUpload.id);
+            await fs.promises.unlink(filePath).catch(() => {});
+            return res.status(409).json({
+              success: false,
+              duplicate: true,
+              message: "This receipt has already been uploaded. No points were awarded.",
+            });
+          }
+          throw error;
         }
 
-        // Update receipt upload with processing results
-        const updatedReceipt = await storage.updateReceiptUpload(receiptUpload.id, {
-          transactionId,
+        const receiptUpdates = {
           ocrText: processed.ocrText,
           purchaseType: processed.purchaseType,
           detectedAmount: processed.detectedAmount?.toString(),
           detectedPlan: processed.detectedPlan,
           pointsAwarded: processed.pointsAwarded,
           status: 'completed',
-        });
+        };
+
+        let updatedReceipt;
+        if (processed.pointsAwarded > 0) {
+          ({ receipt: updatedReceipt } = await storage.awardReceiptPoints(
+            {
+              userId,
+              type: 'earning',
+              description: processed.description,
+              amount: processed.detectedAmount?.toString() || '0.00',
+              pointsEarned: processed.pointsAwarded,
+              pointsSpent: 0,
+              status: 'completed',
+              orderId: `RCP-${receiptUpload.id.substring(0, 8)}`,
+            },
+            receiptUpload.id,
+            receiptUpdates,
+          ));
+        } else {
+          updatedReceipt = await storage.updateReceiptUpload(
+            receiptUpload.id,
+            receiptUpdates,
+          );
+        }
 
         res.json({
           success: true,
@@ -634,6 +727,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get('/api/dashboard/reward-notifications', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const notifications = await storage.getPendingRewardNotifications(userId);
+      res.json(notifications);
+    } catch (error) {
+      console.error("Error fetching reward notifications:", error);
+      res.status(500).json({ message: "Failed to fetch reward notifications" });
+    }
+  });
+
+  app.patch('/api/dashboard/reward-notifications/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { id } = req.params;
+      const { action } = z.object({
+        action: z.enum(['redeem', 'dismiss']),
+      }).parse(req.body);
+
+      // Redemption itself remains exclusively POST /api/redemptions. The client
+      // invokes this lightweight resolution only after that request succeeds.
+      if (action === 'redeem') {
+        const notification = await storage.getRewardNotification(id, userId);
+        if (!notification) {
+          return res.status(404).json({ message: "Reward notification not found" });
+        }
+
+        // A notification-referenced POST already resolves it. Treat the
+        // frontend's follow-up PATCH as a successful idempotent operation.
+        if (notification.status === "pending") {
+          const redemptions = await storage.getUserRedemptions(userId);
+          const hasMatchingRedemption = redemptions.some(
+            (redemption) =>
+              redemption.rewardId === notification.rewardId &&
+              redemption.redeemedAt != null &&
+              notification.createdAt != null &&
+              redemption.redeemedAt >= notification.createdAt,
+          );
+          if (!hasMatchingRedemption) {
+            return res.status(409).json({
+              message: "Redeem this reward before resolving its notification",
+            });
+          }
+        }
+      }
+
+      const resolved = await storage.resolveRewardNotification(
+        id,
+        userId,
+        action === 'redeem' ? 'redeemed' : 'dismissed',
+      );
+      if (!resolved) {
+        return res.status(404).json({ message: "Pending reward notification not found" });
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error resolving reward notification:", error);
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid notification action", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to resolve reward notification" });
+      }
+    }
+  });
+
   app.post('/api/transactions', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
@@ -668,41 +827,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/redemptions', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const redemptionData = insertRedemptionSchema.parse({
-        ...req.body,
+      const { rewardId, notificationId } = z.object({
+        rewardId: z.string().min(1),
+        notificationId: z.string().min(1).optional(),
+      }).parse(req.body);
+
+      // This dedicated operation uses the catalog cost, not any client-supplied
+      // points value, and atomically protects the balance and notification.
+      const { redemption } = await storage.redeemReward(
         userId,
-      });
-
-      // Check if user has enough points
-      const user = await storage.getUser(userId);
-      if (!user || (user.totalPoints ?? 0) < redemptionData.pointsSpent) {
-        return res.status(400).json({ message: "Insufficient points" });
-      }
-
-      console.log(`[REDEMPTION] User ${userId} redeeming ${redemptionData.pointsSpent} points`);
-      console.log(`[REDEMPTION] User points before: ${user.totalPoints}`);
-      
-      const redemption = await storage.createRedemption(redemptionData);
-      console.log(`[REDEMPTION] Redemption created: ${redemption.id}`);
-      
-      // Create transaction for points spent (this automatically deducts points via createTransaction)
-      const transaction = await storage.createTransaction({
-        userId,
-        type: 'redemption',
-        pointsSpent: redemptionData.pointsSpent,
-        description: `Redeemed reward: ${redemption.id}`,
-        status: 'completed',
-      });
-      console.log(`[REDEMPTION] Transaction created: ${transaction.id}`);
-      
-      const userAfter = await storage.getUser(userId);
-      console.log(`[REDEMPTION] User points after: ${userAfter?.totalPoints}`);
-
+        rewardId,
+        notificationId,
+      );
       res.json(redemption);
     } catch (error) {
       console.error("Error creating redemption:", error);
       if (error instanceof z.ZodError) {
         res.status(400).json({ message: "Invalid redemption data", errors: error.errors });
+      } else if (error instanceof RedemptionOperationError) {
+        res.status(error.status).json({ message: error.message });
       } else {
         res.status(500).json({ message: "Failed to redeem reward" });
       }
@@ -982,4 +1125,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   const httpServer = createServer(app);
   return httpServer;
+}
+
+function isInvoiceNumberConflict(error: unknown): boolean {
+  let current: any = error;
+  for (let depth = 0; current && depth < 5; depth += 1) {
+    if (
+      current.code === "23505" &&
+      (current.constraint === "invoice_submissions_invoice_number_unique" ||
+        String(current.detail ?? "").includes("(invoice_number)="))
+    ) {
+      return true;
+    }
+    current = current.cause;
+  }
+  return false;
 }

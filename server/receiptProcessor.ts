@@ -1,7 +1,43 @@
+import fs from 'fs/promises';
 import Tesseract from 'tesseract.js';
+import { pdf as pdfToImg } from 'pdf-to-img';
+import { PDFParse } from 'pdf-parse';
 import { db } from './db';
 import { packages } from '@shared/schema';
 import { eq } from 'drizzle-orm';
+
+const PDF_OCR_MAX_PAGES = 5;
+const PDF_OCR_RENDER_SCALE = 1.5;
+
+async function extractPdfReceiptText(buffer: Buffer): Promise<string> {
+  try {
+    const parser = new PDFParse({ data: buffer });
+    try {
+      const parsed = await parser.getText();
+      if (parsed.text?.trim()) return parsed.text;
+    } finally {
+      await parser.destroy();
+    }
+  } catch (error) {
+    console.warn('Receipt PDF text extraction failed; trying OCR:', error);
+  }
+
+  const document = await pdfToImg(buffer, { scale: PDF_OCR_RENDER_SCALE });
+  const worker = await Tesseract.createWorker('eng');
+  try {
+    const pageTexts: string[] = [];
+    let pageNumber = 0;
+    for await (const pageImage of document) {
+      pageNumber += 1;
+      if (pageNumber > PDF_OCR_MAX_PAGES) break;
+      const result = await worker.recognize(pageImage);
+      pageTexts.push(result.data.text);
+    }
+    return pageTexts.join('\n');
+  } finally {
+    await worker.terminate().catch(() => {});
+  }
+}
 
 export interface ProcessedReceipt {
   purchaseType: string;
@@ -33,7 +69,7 @@ function normalizeForMatch(s: string): string {
  * Fails soft: returns null on any DB error so receipt processing can fall
  * through to airtime/accessory detection.
  */
-async function matchPackageInText(ocrText: string): Promise<{ name: string; points: number } | null> {
+export async function matchPackageInText(ocrText: string): Promise<{ name: string; points: number } | null> {
   try {
     const rows = await db.select().from(packages).where(eq(packages.status, 'active'));
     const ocrNorm = normalizeForMatch(ocrText);
@@ -56,10 +92,15 @@ async function matchPackageInText(ocrText: string): Promise<{ name: string; poin
 /**
  * Process receipt image using OCR and calculate points
  */
-export async function processReceiptImage(imagePath: string): Promise<ProcessedReceipt> {
+export async function processReceiptImage(filePath: string, mimetype?: string): Promise<ProcessedReceipt> {
   try {
-    // Perform OCR on the receipt image
-    const { data: { text } } = await Tesseract.recognize(imagePath, 'eng');
+    let text: string;
+    if (mimetype === 'application/pdf' || mimetype === 'application/x-pdf' || /\.pdf$/i.test(filePath)) {
+      text = await extractPdfReceiptText(await fs.readFile(filePath));
+    } else {
+      const result = await Tesseract.recognize(filePath, 'eng');
+      text = result.data.text;
+    }
 
     const ocrText = text.toLowerCase();
     
@@ -173,9 +214,16 @@ export async function processReceiptImage(imagePath: string): Promise<ProcessedR
 }
 
 /**
- * Validate if file is an allowed image type
+ * Validate if file is an allowed receipt image or PDF.
  */
-export function isValidReceiptFile(mimetype: string): boolean {
-  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-  return allowedTypes.includes(mimetype);
+export function isValidReceiptFile(mimetype: string, originalName = ''): boolean {
+  const allowedTypes = [
+    'image/jpeg',
+    'image/jpg',
+    'image/png',
+    'image/webp',
+    'application/pdf',
+    'application/x-pdf',
+  ];
+  return allowedTypes.includes(mimetype) || /\.pdf$/i.test(originalName);
 }

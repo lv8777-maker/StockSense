@@ -13,15 +13,22 @@ export interface OutgoingEmail {
   text: string;
 }
 
-let sgMailPromise: Promise<any> | null = null;
+interface SendGridClient {
+  setApiKey(apiKey: string): void;
+  send(message: OutgoingEmail & { from: string }): Promise<unknown>;
+}
+
+let sgMailPromise: Promise<SendGridClient | null> | null = null;
 
 async function getSendGrid() {
-  if (!process.env.SENDGRID_API_KEY) return null;
+  const apiKey = process.env.SENDGRID_API_KEY;
+  if (!apiKey) return null;
   if (!sgMailPromise) {
-    sgMailPromise = import('@sendgrid/mail')
+    const sendGridModule = '@sendgrid/mail';
+    sgMailPromise = import(sendGridModule)
       .then((m) => {
-        const sg = (m as any).default ?? m;
-        sg.setApiKey(process.env.SENDGRID_API_KEY);
+        const sg = (m.default ?? m) as SendGridClient;
+        sg.setApiKey(apiKey);
         return sg;
       })
       .catch((err) => {

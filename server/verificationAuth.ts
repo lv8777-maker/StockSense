@@ -17,6 +17,32 @@ export function generateCode(): string {
   return n.toString().padStart(6, '0');
 }
 
+export async function completeDevelopmentVerification(userId: string) {
+  if (process.env.NODE_ENV === "production") {
+    return storage.getUser(userId);
+  }
+
+  const verifiedUser = await storage.markUserVerified(userId);
+  try {
+    await storage.createTransaction({
+      userId,
+      type: "earning",
+      description: "Welcome to Maverick Loyalty! Sign-up bonus.",
+      amount: "0.00",
+      pointsEarned: 500,
+      pointsSpent: 0,
+      status: "completed",
+      orderId: `WELCOME-${userId.substring(0, 8)}`,
+    });
+  } catch (error: any) {
+    // The welcome transaction is unique per user, making the development
+    // bypass safe for repeated logins and restored browser sessions.
+    if (error?.code !== "23505") throw error;
+  }
+
+  return (await storage.getUser(userId)) ?? verifiedUser;
+}
+
 export async function issueVerificationCode(opts: {
   userId: string;
   email: string;

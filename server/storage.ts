@@ -2,6 +2,7 @@ import {
   users,
   rewards,
   transactions,
+  rewardNotifications,
   redemptions,
   offers,
   receiptUploads,
@@ -21,6 +22,9 @@ import {
   type InsertReward,
   type Transaction,
   type InsertTransaction,
+  type RewardNotification,
+  type InsertRewardNotification,
+  type PendingRewardNotification,
   type Redemption,
   type InsertRedemption,
   type Offer,
@@ -44,6 +48,14 @@ import { db } from "./db";
 import { eq, desc, sql, and, gte, lte } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import bcrypt from "bcrypt";
+import { findNewlyQualifiedRewards, type NewlyQualifiedReward } from "./rewardQualification";
+
+export class RedemptionOperationError extends Error {
+  constructor(message: string, public readonly status = 400) {
+    super(message);
+    this.name = "RedemptionOperationError";
+  }
+}
 
 export interface IStorage {
   // User operations (required for Replit Auth)
@@ -84,15 +96,39 @@ export interface IStorage {
   
   // Transaction operations
   createTransaction(transaction: InsertTransaction): Promise<Transaction>;
+  awardReceiptPoints(
+    transaction: InsertTransaction,
+    receiptUploadId: string,
+    receiptUpdates: Partial<ReceiptUpload>,
+  ): Promise<{
+    transaction: Transaction;
+    receipt: ReceiptUpload;
+    newlyQualifiedRewards: NewlyQualifiedReward[];
+  }>;
   getUserTransactions(userId: string, limit?: number): Promise<Transaction[]>;
   getTransactionStats(userId: string): Promise<{
     totalPurchases: number;
     totalSpent: string;
     totalPointsEarned: number;
   }>;
+
+  // Reward qualification notifications
+  createRewardNotification(notification: InsertRewardNotification): Promise<RewardNotification>;
+  getPendingRewardNotifications(userId: string): Promise<PendingRewardNotification[]>;
+  getRewardNotification(id: string, userId: string): Promise<RewardNotification | undefined>;
+  resolveRewardNotification(
+    id: string,
+    userId: string,
+    status: 'redeemed' | 'dismissed',
+  ): Promise<boolean>;
   
   // Redemption operations
   createRedemption(redemption: InsertRedemption): Promise<Redemption>;
+  redeemReward(
+    userId: string,
+    rewardId: string,
+    notificationId?: string,
+  ): Promise<{ redemption: Redemption; idempotent: boolean }>;
   getUserRedemptions(userId: string): Promise<(Redemption & { reward: Reward })[]>;
   markRedemptionUsed(redemptionId: string): Promise<void>;
   
@@ -103,13 +139,19 @@ export interface IStorage {
   
   
   // Receipt uploads
+  getReceiptUploadByHash(userId: string, fileHash: string): Promise<ReceiptUpload | undefined>;
   createReceiptUpload(upload: InsertReceiptUpload): Promise<ReceiptUpload>;
+  deleteReceiptUpload(id: string): Promise<void>;
   getUserReceiptUploads(userId: string, limit?: number): Promise<ReceiptUpload[]>;
   updateReceiptUpload(id: string, updates: Partial<ReceiptUpload>): Promise<ReceiptUpload>;
 
   // Invoice submissions
   getInvoiceByNumber(invoiceNumber: string): Promise<InvoiceSubmission | undefined>;
   createInvoiceSubmission(submission: InsertInvoiceSubmission): Promise<InvoiceSubmission>;
+  awardInvoicePoints(
+    submission: InsertInvoiceSubmission,
+    transaction: Omit<InsertTransaction, "userId">,
+  ): Promise<{ submission: InvoiceSubmission; transaction: Transaction; user: User }>;
   getUserInvoiceSubmissions(userId: string, limit?: number): Promise<InvoiceSubmission[]>;
   
   // Enterprise features - Campaigns
@@ -502,6 +544,94 @@ export class DatabaseStorage implements IStorage {
     return newTransaction;
   }
 
+  /**
+   * Receipt awards must observe and update a member's balance as one unit. The
+   * user row lock makes the before/after threshold calculation serializable for
+   * concurrent uploads by the same member.
+   */
+  async awardReceiptPoints(
+    transaction: InsertTransaction,
+    receiptUploadId: string,
+    receiptUpdates: Partial<ReceiptUpload>,
+  ): Promise<{
+    transaction: Transaction;
+    receipt: ReceiptUpload;
+    newlyQualifiedRewards: NewlyQualifiedReward[];
+  }> {
+    return db.transaction(async (tx) => {
+      const [userBeforeAward] = await tx
+        .select()
+        .from(users)
+        .where(eq(users.id, transaction.userId))
+        .for("update");
+      if (!userBeforeAward) {
+        throw new Error("User account not found");
+      }
+
+      const [createdTransaction] = await tx
+        .insert(transactions)
+        .values(transaction)
+        .returning();
+      const pointsEarned = transaction.pointsEarned || 0;
+      const expiryDate = new Date();
+      expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+      const [userAfterAward] = await tx
+        .update(users)
+        .set({
+          totalPoints: sql`${users.totalPoints} + ${pointsEarned}`,
+          pointsExpiryDate: expiryDate,
+          updatedAt: new Date(),
+        })
+        .where(eq(users.id, transaction.userId))
+        .returning();
+
+      const activeRewards = await tx
+        .select()
+        .from(rewards)
+        .where(and(
+          eq(rewards.isActive, true),
+          sql`${rewards.validUntil} IS NULL OR ${rewards.validUntil} > NOW()`,
+        ))
+        .orderBy(rewards.pointsCost);
+      const newlyQualifiedRewards = findNewlyQualifiedRewards(
+        activeRewards,
+        userBeforeAward.totalPoints ?? 0,
+        userAfterAward.totalPoints ?? 0,
+      );
+
+      for (const reward of newlyQualifiedRewards) {
+        await tx.insert(rewardNotifications).values({
+          userId: transaction.userId,
+          rewardId: reward.id,
+          sourceTransactionId: createdTransaction.id,
+          status: "pending",
+        });
+      }
+
+      const [updatedReceipt] = await tx
+        .update(receiptUploads)
+        .set({
+          ...receiptUpdates,
+          transactionId: createdTransaction.id,
+          status: "completed",
+        })
+        .where(and(
+          eq(receiptUploads.id, receiptUploadId),
+          eq(receiptUploads.userId, transaction.userId),
+        ))
+        .returning();
+      if (!updatedReceipt) {
+        throw new Error("Receipt upload not found");
+      }
+
+      return {
+        transaction: createdTransaction,
+        receipt: updatedReceipt,
+        newlyQualifiedRewards,
+      };
+    });
+  }
+
   async getUserTransactions(userId: string, limit = 50): Promise<Transaction[]> {
     return await db
       .select()
@@ -532,6 +662,82 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
+  async createRewardNotification(
+    notification: InsertRewardNotification,
+  ): Promise<RewardNotification> {
+    const [created] = await db
+      .insert(rewardNotifications)
+      .values(notification)
+      .returning();
+    return created;
+  }
+
+  async getPendingRewardNotifications(
+    userId: string,
+  ): Promise<PendingRewardNotification[]> {
+    return await db
+      .select({
+        id: rewardNotifications.id,
+        userId: rewardNotifications.userId,
+        rewardId: rewardNotifications.rewardId,
+        sourceTransactionId: rewardNotifications.sourceTransactionId,
+        status: rewardNotifications.status,
+        createdAt: rewardNotifications.createdAt,
+        resolvedAt: rewardNotifications.resolvedAt,
+        name: rewards.name,
+        pointsCost: rewards.pointsCost,
+        category: rewards.category,
+        imageUrl: rewards.imageUrl,
+      })
+      .from(rewardNotifications)
+      .innerJoin(rewards, eq(rewardNotifications.rewardId, rewards.id))
+      .where(
+        and(
+          eq(rewardNotifications.userId, userId),
+          eq(rewardNotifications.status, 'pending'),
+        ),
+      )
+      .orderBy(rewardNotifications.createdAt);
+  }
+
+  async getRewardNotification(
+    id: string,
+    userId: string,
+  ): Promise<RewardNotification | undefined> {
+    const [notification] = await db
+      .select()
+      .from(rewardNotifications)
+      .where(and(
+        eq(rewardNotifications.id, id),
+        eq(rewardNotifications.userId, userId),
+      ));
+    return notification;
+  }
+
+  async resolveRewardNotification(
+    id: string,
+    userId: string,
+    status: 'redeemed' | 'dismissed',
+  ): Promise<boolean> {
+    return db.transaction(async (tx) => {
+      const [notification] = await tx
+        .select()
+        .from(rewardNotifications)
+        .where(and(
+          eq(rewardNotifications.id, id),
+          eq(rewardNotifications.userId, userId),
+        ))
+        .for("update");
+      if (!notification) return false;
+      if (notification.status === status) return true;
+      if (notification.status !== "pending") return false;
+      await tx.update(rewardNotifications)
+        .set({ status, resolvedAt: new Date() })
+        .where(eq(rewardNotifications.id, id));
+      return true;
+    });
+  }
+
   // Redemption operations
   async createRedemption(redemption: InsertRedemption): Promise<Redemption> {
     const redemptionCode = `RDM-${randomUUID().slice(0, 8).toUpperCase()}`;
@@ -553,6 +759,94 @@ export class DatabaseStorage implements IStorage {
       .where(eq(rewards.id, redemption.rewardId));
 
     return newRedemption;
+  }
+
+  async redeemReward(
+    userId: string,
+    rewardId: string,
+    notificationId?: string,
+  ): Promise<{ redemption: Redemption; idempotent: boolean }> {
+    return db.transaction(async (tx) => {
+      let notification: RewardNotification | undefined;
+      if (notificationId) {
+        [notification] = await tx
+          .select()
+          .from(rewardNotifications)
+          .where(and(
+            eq(rewardNotifications.id, notificationId),
+            eq(rewardNotifications.userId, userId),
+          ))
+          .for("update");
+        if (!notification || notification.rewardId !== rewardId) {
+          throw new RedemptionOperationError("Reward notification not found");
+        }
+        if (notification.status === "dismissed") {
+          throw new RedemptionOperationError("Reward notification is dismissed");
+        }
+        if (notification.status === "redeemed") {
+          const [existing] = await tx
+            .select()
+            .from(redemptions)
+            .where(and(
+              eq(redemptions.userId, userId),
+              eq(redemptions.rewardId, rewardId),
+              gte(redemptions.redeemedAt, notification.createdAt!),
+            ))
+            .orderBy(desc(redemptions.redeemedAt))
+            .limit(1);
+          if (existing) return { redemption: existing, idempotent: true };
+          throw new RedemptionOperationError("Reward notification has no redemption", 409);
+        }
+      }
+
+      const [user] = await tx.select().from(users).where(eq(users.id, userId)).for("update");
+      if (!user) throw new RedemptionOperationError("User not found", 404);
+      const [reward] = await tx
+        .select()
+        .from(rewards)
+        .where(and(
+          eq(rewards.id, rewardId),
+          eq(rewards.isActive, true),
+          sql`${rewards.validUntil} IS NULL OR ${rewards.validUntil} > NOW()`,
+        ))
+        .for("update");
+      if (!reward || reward.pointsCost <= 0) {
+        throw new RedemptionOperationError("Reward is not available");
+      }
+      if ((user.totalPoints ?? 0) < reward.pointsCost) {
+        throw new RedemptionOperationError("Insufficient points");
+      }
+
+      const redemptionCode = `RDM-${randomUUID().slice(0, 8).toUpperCase()}`;
+      const [redemption] = await tx.insert(redemptions).values({
+        userId,
+        rewardId: reward.id,
+        pointsSpent: reward.pointsCost,
+        redemptionCode,
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      }).returning();
+      await tx.insert(transactions).values({
+        userId,
+        type: "redemption",
+        pointsSpent: reward.pointsCost,
+        description: `Redeemed reward: ${redemption.id}`,
+        status: "completed",
+      });
+      await tx.update(users).set({
+        totalPoints: sql`${users.totalPoints} - ${reward.pointsCost}`,
+        updatedAt: new Date(),
+      }).where(eq(users.id, userId));
+      await tx.update(rewards).set({
+        redemptionCount: sql`${rewards.redemptionCount} + 1`,
+      }).where(eq(rewards.id, reward.id));
+      if (notification) {
+        await tx.update(rewardNotifications).set({
+          status: "redeemed",
+          resolvedAt: new Date(),
+        }).where(eq(rewardNotifications.id, notification.id));
+      }
+      return { redemption, idempotent: false };
+    });
   }
 
   async getUserRedemptions(userId: string): Promise<(Redemption & { reward: Reward })[]> {
@@ -621,6 +915,26 @@ export class DatabaseStorage implements IStorage {
     return newUpload;
   }
 
+  async getReceiptUploadByHash(
+    userId: string,
+    fileHash: string,
+  ): Promise<ReceiptUpload | undefined> {
+    const [upload] = await db
+      .select()
+      .from(receiptUploads)
+      .where(
+        and(
+          eq(receiptUploads.userId, userId),
+          eq(receiptUploads.fileHash, fileHash),
+        ),
+      );
+    return upload;
+  }
+
+  async deleteReceiptUpload(id: string): Promise<void> {
+    await db.delete(receiptUploads).where(eq(receiptUploads.id, id));
+  }
+
   async getUserReceiptUploads(userId: string, limit: number = 50): Promise<ReceiptUpload[]> {
     return await db
       .select()
@@ -644,6 +958,49 @@ export class DatabaseStorage implements IStorage {
       .values(submission)
       .returning();
     return created;
+  }
+
+  async awardInvoicePoints(
+    submission: InsertInvoiceSubmission,
+    transaction: Omit<InsertTransaction, "userId">,
+  ): Promise<{ submission: InvoiceSubmission; transaction: Transaction; user: User }> {
+    return db.transaction(async (tx) => {
+      const [createdSubmission] = await tx
+        .insert(invoiceSubmissions)
+        .values(submission)
+        .returning();
+
+      const [createdTransaction] = await tx
+        .insert(transactions)
+        .values({ ...transaction, userId: submission.userId })
+        .returning();
+
+      const pointsChange =
+        (transaction.pointsEarned ?? 0) - (transaction.pointsSpent ?? 0);
+      const expiryDate =
+        (transaction.pointsEarned ?? 0) > 0 && transaction.type !== "expiry"
+          ? new Date(new Date().setFullYear(new Date().getFullYear() + 1))
+          : undefined;
+      const [updatedUser] = await tx
+        .update(users)
+        .set({
+          totalPoints: sql`COALESCE(${users.totalPoints}, 0) + ${pointsChange}`,
+          ...(expiryDate ? { pointsExpiryDate: expiryDate } : {}),
+          updatedAt: new Date(),
+        })
+        .where(eq(users.id, submission.userId))
+        .returning();
+
+      if (!updatedUser) {
+        throw new Error("Cannot award invoice points: user account not found");
+      }
+
+      return {
+        submission: createdSubmission,
+        transaction: createdTransaction,
+        user: updatedUser,
+      };
+    });
   }
 
   async getUserInvoiceSubmissions(userId: string, limit: number = 50): Promise<InvoiceSubmission[]> {

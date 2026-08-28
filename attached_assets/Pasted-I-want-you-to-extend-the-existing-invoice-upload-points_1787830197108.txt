@@ -1,0 +1,39 @@
+I want you to extend the existing invoice-upload → points-award flow in this app with a rewards-qualification step. Read the existing code before changing anything — this repo already has most of the plumbing built, and I want you to extend it, not build a parallel system.
+
+What already exists (confirm this yourself, then build on it)
+shared/schema.ts already defines a packages table (name, network, contractDuration, pointsAwarded, status) — this IS the extensible package→points mapping. Do not create a second table for this.
+server/invoiceProcessor.ts already has findPackage(invoicePackageName, contractDuration), which normalizes and matches the parsed invoice's package name against active rows in packages, filtered by exact contractDuration match, and returns { name, pointsAwarded }.
+server/routes.ts, route POST /api/invoices/upload (search for Invoice upload route), already: parses the uploaded PDF, checks for duplicate invoice numbers, verifies the invoice's customer name against the logged-in user, requires a recognised contract duration, calls findPackage, records an invoiceSubmissions row, and calls storage.createTransaction({ ...pointsEarned: pkg.pointsAwarded... }) to award the points. It returns a JSON response with pointsAwarded, packageName, contractDuration, invoiceNumber.
+server/storage.ts's createTransaction() is what actually credits the points to users.totalPoints (via updateUserPoints), and it's also what the redemption endpoint (POST /api/redemptions) uses to deduct points on redemption.
+rewards table (shared/schema.ts) already has the shape for a redeemable reward: pointsCost, category, isActive, maxRedemptions, redemptionCount, validUntil.
+storage.getActiveRewards() already returns active, non-expired rewards ordered by pointsCost.
+POST /api/redemptions already implements "redeem a reward": validates the user has enough points, creates a redemptions row, and creates a deducting transaction. Reuse this endpoint for the "redeem now" choice — do not build a second redemption code path.
+Frontend: client/src/pages/UploadInvoice.tsx is the page that calls POST /api/invoices/upload and renders the success result. This is where the new UI needs to go.
+There is a second, separate points system in server/services/PointsEngineService.ts (earning rules, campaigns, loyaltyAccounts, bronze/silver/gold/platinum tiers). The invoice-upload flow does NOT use this service today — it uses storage.createTransaction directly. Do not route this new feature through PointsEngineService; keep it consistent with the existing invoice-upload code path so points aren't awarded twice or tracked in two places.
+1. Seed the package→points mapping (v1, one entry)
+Add exactly one seed row to the packages table: name "MTN Home Starter MTM", pointsAwarded: 100, status: "active". Do this as a proper seed (e.g. alongside the existing seeding pattern in server/seedDemoData.ts, or a migration — follow whatever convention this repo already uses for seed data), not a one-off manual insert, so the owner can see the pattern for adding more packages later. The owner will add the full real MTN package list here later — nothing about this table's structure should be special-cased to this one package.
+
+Important — flag this before you touch contractDuration: "MTN Home Starter MTM" is a month-to-month package, but packages.contractDuration is a required (NOT NULL) column, and both extractContractDuration() in invoiceProcessor.ts and the invoice-upload route currently only recognise 24-month or 36-month terms (they reject anything else as "not eligible"). Month-to-month invoices will not carry a 24MTH/36MTH marker for that regex to match.
+
+Do this: extend contractDuration handling to also recognise a month-to-month case (e.g. treat the literal string "MTM" or "Month-to-Month" as a valid, matchable value alongside "24 Months"/"36 Months", both in extractContractDuration()'s parsing and in findPackage()'s matching), and seed the package row with whatever value you choose for that. Tell me in your summary exactly what string you used, since real MTM invoices will need to parse to that same value.
+
+2. After points are awarded, check reward qualification
+In the POST /api/invoices/upload route, after the existing storage.createTransaction(...) call that awards points for the invoice:
+
+Fetch the user's points balance before this award (you have it from the storage.getUser(userId) call already made earlier in the route) and after (re-fetch, or compute before + pkg.pointsAwarded).
+Fetch active rewards via storage.getActiveRewards().
+A reward counts as newly qualified if the user's balance before this award was less than reward.pointsCost, and the balance after this award is greater than or equal to reward.pointsCost. (This means a reward the user could already afford before this invoice does NOT show again — only ones this specific award just unlocked. If there is more than one newly-qualified reward, include all of them, not just the first.)
+Add a newlyQualifiedRewards array to the JSON response of this route, each entry containing at least id, name, pointsCost, category, imageUrl.
+3. Redeem-now vs. save-for-later — as a UI flow, not just a response field
+In client/src/pages/UploadInvoice.tsx, when the upload response includes one or more newlyQualifiedRewards:
+
+Show each newly-qualified reward to the user (e.g. a card or modal per reward, styled consistently with the existing rewards UI in client/src/pages/rewards.tsx — check that file for the existing visual pattern for a reward card).
+For each one, give the user two explicit actions:
+"Redeem now" — calls the existing POST /api/redemptions endpoint with that rewardId and the reward's pointsCost as pointsSpent, using the same request shape the rewards page already uses (check client/src/pages/rewards.tsx for how it currently calls this endpoint, and match it). On success, show confirmation and invalidate the same queries the rewards page invalidates after a redemption (points balance, redemptions list, transactions).
+"Save for later" — simply dismisses the prompt with no API call; the user's points stay as-is and the reward remains available to redeem later from the normal rewards page. No new "dismissed" state needs to be persisted anywhere — dismissing is just a UI-local action.
+Don't block the rest of the invoice-upload success UI on this — the existing "points awarded" confirmation should still show regardless of whether there's a newly-qualified reward.
+Constraints
+Don't modify PointsEngineService.ts, loyaltyAccounts, or the earning-rules/campaigns system — this feature stays entirely within the existing invoice-upload → transactions/totalPoints → rewards/redemptions code path already used by this route.
+Keep the package→points table generic — no hardcoded if (packageName === "MTN Home Starter MTM") branching anywhere. All package-specific data lives in the packages table row.
+Follow the existing error-handling conventions in routes.ts (JSON { message } error bodies, appropriate status codes) and the existing TypeScript/Drizzle patterns already used in storage.ts and shared/schema.ts.
+When you're done, tell me: (a) the exact contractDuration value you used for the MTM case, (b) the file names you touched, and (c) how you tested the full flow (seed → upload a qualifying invoice → see the reward prompt → redeem or save).

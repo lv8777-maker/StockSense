@@ -30,6 +30,7 @@ export default function Rewards() {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedReward, setSelectedReward] = useState<Reward | null>(null);
   const [showClaimDialog, setShowClaimDialog] = useState(false);
+  const availablePoints = user?.totalPoints ?? 0;
 
   const { data: rewards = [], isLoading } = useQuery<Reward[]>({
     queryKey: ["/api/rewards"],
@@ -268,12 +269,12 @@ export default function Rewards() {
                 
                 <Button
                   onClick={() => handleClaimClick(reward)}
-                  disabled={!user || user.totalPoints < reward.pointsCost || !reward.isActive}
+                  disabled={!user || availablePoints < reward.pointsCost || !reward.isActive}
                   className="w-full bg-[#FDC800] hover:bg-[#FDC800]/90 text-[#3C3C3B] font-medium"
                   data-testid={`button-claim-${reward.id}`}
                 >
                   {!user ? "Sign In to Claim" :
-                   user.totalPoints < reward.pointsCost ? `Need ${reward.pointsCost - user.totalPoints} More Points` :
+                    availablePoints < reward.pointsCost ? `Need ${reward.pointsCost - availablePoints} More Points` :
                    !reward.isActive ? "Currently Unavailable" :
                    "Claim Reward"}
                 </Button>
@@ -359,7 +360,7 @@ export default function Rewards() {
                 </Button>
                 <Button
                   onClick={confirmClaim}
-                  disabled={redeemMutation.isPending || !user || user.totalPoints < selectedReward.pointsCost}
+                  disabled={redeemMutation.isPending || !user || availablePoints < selectedReward.pointsCost}
                   className="flex-1 bg-[#FDC800] hover:bg-[#FDC800]/90 text-[#3C3C3B]"
                   data-testid="button-confirm-claim"
                 >

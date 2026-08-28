@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Gift, Star, Users, Award, Smartphone, Mail, Crown } from "lucide-react";
+import { Gift, Star, Users, Award, Smartphone, Mail, Crown, LogIn } from "lucide-react";
 import PhoneLogin from "@/components/PhoneLogin";
 import { Link } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
@@ -49,7 +49,7 @@ export default function Landing() {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <Link href="/email-auth">
+              <Link href="/email-auth?mode=signup">
                 <Button 
                   size="lg"
                   className="bg-[#FDC800] hover:bg-[#FDC800]/90 text-[#3C3C3B] text-lg px-8 py-3 font-semibold"
@@ -70,6 +70,18 @@ export default function Landing() {
                 <Smartphone className="h-5 w-5 mr-2" />
                 Continue with Phone (SA)
               </Button>
+
+              <Link href="/email-auth">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="text-lg px-8 py-3 border-[#3C3C3B] text-[#3C3C3B]"
+                  data-testid="button-email-signin"
+                >
+                  <LogIn className="h-5 w-5 mr-2" />
+                  Sign In
+                </Button>
+              </Link>
             </div>
           </div>
         </div>

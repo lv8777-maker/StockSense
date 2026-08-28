@@ -104,6 +104,23 @@ export const transactions = pgTable("transactions", {
     .where(sql`${table.orderId} IS NOT NULL`),
 ]);
 
+// Persistent dashboard notifications created when an award crosses reward thresholds
+export const rewardNotifications = pgTable("reward_notifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  rewardId: varchar("reward_id").notNull().references(() => rewards.id),
+  sourceTransactionId: varchar("source_transaction_id").references(() => transactions.id),
+  status: varchar("status").default('pending'), // pending, redeemed, dismissed
+  createdAt: timestamp("created_at").defaultNow(),
+  resolvedAt: timestamp("resolved_at"),
+}, (table) => [
+  index("reward_notifications_user_status_idx")
+    .on(table.userId, table.status, table.createdAt),
+  uniqueIndex("reward_notifications_source_reward_unique")
+    .on(table.sourceTransactionId, table.rewardId)
+    .where(sql`${table.sourceTransactionId} IS NOT NULL`),
+]);
+
 // Receipt uploads for purchase verification
 export const receiptUploads = pgTable("receipt_uploads", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -111,6 +128,8 @@ export const receiptUploads = pgTable("receipt_uploads", {
   transactionId: varchar("transaction_id").references(() => transactions.id),
   fileName: varchar("file_name").notNull(),
   fileUrl: varchar("file_url").notNull(),
+  fileHash: varchar("file_hash"),
+  documentHash: varchar("document_hash"),
   ocrText: text("ocr_text"), // raw OCR extracted text
   purchaseType: varchar("purchase_type"), // airtime, accessory, plan
   detectedAmount: decimal("detected_amount", { precision: 10, scale: 2 }),
@@ -120,7 +139,14 @@ export const receiptUploads = pgTable("receipt_uploads", {
   processingError: text("processing_error"),
   createdAt: timestamp("created_at").defaultNow(),
   processedAt: timestamp("processed_at"),
-});
+}, (table) => [
+  uniqueIndex("receipt_uploads_user_file_hash_unique")
+    .on(table.userId, table.fileHash)
+    .where(sql`${table.fileHash} IS NOT NULL`),
+  uniqueIndex("receipt_uploads_user_document_hash_unique")
+    .on(table.userId, table.documentHash)
+    .where(sql`${table.documentHash} IS NOT NULL`),
+]);
 
 // Reward redemptions
 export const redemptions = pgTable("redemptions", {
@@ -146,7 +172,7 @@ export const packages = pgTable("packages", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => [
-  index("packages_name_duration_unique").on(table.name, table.contractDuration),
+  uniqueIndex("packages_name_duration_unique").on(table.name, table.contractDuration),
 ]);
 
 // Invoice submissions (MTN tax invoices uploaded to claim package points)
@@ -179,18 +205,35 @@ export const offers = pgTable("offers", {
 export const usersRelations = relations(users, ({ many }) => ({
   transactions: many(transactions),
   redemptions: many(redemptions),
+  rewardNotifications: many(rewardNotifications),
   offers: many(offers),
   receiptUploads: many(receiptUploads),
 }));
 
 export const rewardsRelations = relations(rewards, ({ many }) => ({
   redemptions: many(redemptions),
+  rewardNotifications: many(rewardNotifications),
 }));
 
 export const transactionsRelations = relations(transactions, ({ one }) => ({
   user: one(users, {
     fields: [transactions.userId],
     references: [users.id],
+  }),
+}));
+
+export const rewardNotificationsRelations = relations(rewardNotifications, ({ one }) => ({
+  user: one(users, {
+    fields: [rewardNotifications.userId],
+    references: [users.id],
+  }),
+  reward: one(rewards, {
+    fields: [rewardNotifications.rewardId],
+    references: [rewards.id],
+  }),
+  sourceTransaction: one(transactions, {
+    fields: [rewardNotifications.sourceTransactionId],
+    references: [transactions.id],
   }),
 }));
 
@@ -235,6 +278,13 @@ export type InsertTransaction = typeof transactions.$inferInsert;
 export type Reward = typeof rewards.$inferSelect;
 export type InsertReward = typeof rewards.$inferInsert;
 
+export type RewardNotification = typeof rewardNotifications.$inferSelect;
+export type InsertRewardNotification = typeof rewardNotifications.$inferInsert;
+export type PendingRewardNotification = RewardNotification & Pick<
+  Reward,
+  "name" | "pointsCost" | "category" | "imageUrl"
+>;
+
 export type Redemption = typeof redemptions.$inferSelect;
 export type InsertRedemption = typeof redemptions.$inferInsert;
 
@@ -260,6 +310,12 @@ export const insertRewardSchema = createInsertSchema(rewards).omit({
 export const insertTransactionSchema = createInsertSchema(transactions).omit({
   id: true,
   createdAt: true,
+});
+
+export const insertRewardNotificationSchema = createInsertSchema(rewardNotifications).omit({
+  id: true,
+  createdAt: true,
+  resolvedAt: true,
 });
 
 export const insertRedemptionSchema = createInsertSchema(redemptions).omit({
