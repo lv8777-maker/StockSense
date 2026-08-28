@@ -43,10 +43,3 @@ id = "c6AXAeriQnr78WypEFDQ_"
 uri = "file://exports/CustomerConnect-Staff-Guide.pdf"
 type = "pdf"
 title = "CustomerConnect Staff Guide (PDF)"
-
-[[outputs]]
-id = "bd75e4Vch-iLEXj4Thqtf"
-uri = "file://exports/CustomerConnect-TypeScript-Error-Findings.docx"
-type = "word_document"
-title = "CustomerConnect TypeScript Error Findings"
-description = "Word document containing the executive summary, all 26 TypeScript findings, impacts, and recommended remediation priorities."

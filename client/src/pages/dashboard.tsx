@@ -35,6 +35,13 @@ import {
 } from "@shared/apiContracts";
 import { parseApiResponse } from "@/lib/apiResponse";
 
+interface PointsExpiryInfo {
+  expiryDate: string | null;
+  daysRemaining: number | null;
+  isExpired: boolean;
+  pointsAtRisk: number;
+}
+
 export default function Dashboard() {
   const { user } = useAuth();
   const { isMobile } = useResponsive();

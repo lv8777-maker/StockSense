@@ -7,6 +7,13 @@ import { authLimiter } from "./rateLimiter";
 import type { Express, RequestHandler } from "express";
 
 export function getSession() {
+  if (!process.env.SESSION_SECRET) {
+    throw new Error(
+      "SESSION_SECRET environment variable is required but not set. " +
+      "Set it as a Secret (Replit Secrets pane or .env, never hardcoded) before starting the server."
+    );
+  }
+
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
   const pgStore = connectPg(session);
   const sessionStore = new pgStore({
@@ -16,7 +23,7 @@ export function getSession() {
     tableName: "sessions",
   });
   return session({
-    secret: process.env.SESSION_SECRET || 'maverick-loyalty-secret-key',
+    secret: process.env.SESSION_SECRET,
     store: sessionStore,
     resave: false,
     saveUninitialized: true, // Create sessions for unauthenticated users (required for CSRF)
@@ -61,6 +68,7 @@ export function resolveSessionVerification(
 ): boolean {
   return sessionVerified === true || persistedVerified === true;
 }
+
 
 export async function setupPhoneAuth(app: Express) {
   // Session is now initialized in server/index.ts

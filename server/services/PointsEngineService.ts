@@ -1,15 +1,21 @@
 import { db } from '../db';
-import { 
-  earningRules, 
-  transactions, 
-  users, 
+import {
+  earningRules,
+  transactions,
+  users,
   loyaltyAccounts,
-  type EarningRule, 
+  type EarningRule,
   type InsertTransaction,
-  type User 
+  type User
 } from '@shared/schema';
 import { eq, and, gte, lte, sum, sql } from 'drizzle-orm';
 import { campaignService } from './CampaignService';
+
+// The type `db.transaction()` hands its callback — reused so helper methods
+// can accept either a live transaction or fall back to `db` itself, since
+// both expose the same query-builder surface.
+type DbTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
+type Executor = typeof db | DbTransaction;
 
 export interface PointsCalculation {
   basePoints: number;
@@ -196,7 +202,9 @@ export class PointsEngineService {
     return Math.max(0, points);
   }
 
-  // Record a transaction and award points
+  // Record a transaction and award points. Wrapped in a single DB transaction
+  // so the transaction-log insert, the user/loyalty-account point balances,
+  // and the tier check either all land together or none do.
   async recordTransaction(
     userId: string,
     transactionData: {
@@ -207,53 +215,83 @@ export class PointsEngineService {
       category?: string;
     }
   ): Promise<string> {
-    const pointsCalc = transactionData.amount 
+    const pointsCalc = transactionData.amount
       ? await this.calculatePoints(userId, transactionData.amount, transactionData.category, transactionData.orderId)
       : { totalPoints: 0, basePoints: 0, bonusPoints: 0, campaignPoints: 0, appliedRules: [], appliedCampaigns: [] };
 
-    // Create transaction record
-    const [transaction] = await db
-      .insert(transactions)
-      .values({
-        userId,
-        type: transactionData.type,
-        amount: transactionData.amount?.toString(),
-        pointsEarned: pointsCalc.totalPoints,
-        description: transactionData.description,
-        orderId: transactionData.orderId,
-        status: 'completed',
-      })
-      .returning({ id: transactions.id });
+    const insertedId = await db.transaction(async (tx) => {
+      let transactionRow: { id: string } | undefined;
+      try {
+        [transactionRow] = await tx
+          .insert(transactions)
+          .values({
+            userId,
+            type: transactionData.type,
+            amount: transactionData.amount?.toString(),
+            pointsEarned: pointsCalc.totalPoints,
+            description: transactionData.description,
+            orderId: transactionData.orderId,
+            status: 'completed',
+          })
+          .returning({ id: transactions.id });
+      } catch (e: any) {
+        if (e?.code === '23505' && transactionData.orderId) {
+          // Duplicate (userId, orderId) — another request already recorded this
+          // order. Treat as an idempotency guard, not a hard error, and stop
+          // here: don't double-award points on top of the winning request.
+          // (A caught error still leaves the transaction aborted, so nothing
+          // else can run on `tx` — resolve the existing row after we exit.)
+          return null;
+        }
+        throw e;
+      }
 
-    // Update user's total points
-    await db
-      .update(users)
-      .set({
-        totalPoints: sql`${users.totalPoints} + ${pointsCalc.totalPoints}`,
-        updatedAt: new Date(),
-      })
-      .where(eq(users.id, userId));
+      // Update user's total points
+      await tx
+        .update(users)
+        .set({
+          totalPoints: sql`${users.totalPoints} + ${pointsCalc.totalPoints}`,
+          updatedAt: new Date(),
+        })
+        .where(eq(users.id, userId));
 
-    // Update loyalty account if exists
-    await this.updateLoyaltyAccount(userId, pointsCalc.totalPoints);
+      // Update loyalty account if exists
+      await this.updateLoyaltyAccount(tx, userId, pointsCalc.totalPoints);
 
-    // Check for tier upgrades
-    await this.checkTierUpgrade(userId);
+      // Check for tier upgrades
+      await this.checkTierUpgradeInTx(tx, userId);
 
-    // Notification system removed - points earned will be tracked in transaction history
+      // Notification system removed - points earned will be tracked in transaction history
 
-    return transaction.id;
+      return transactionRow.id;
+    });
+
+    if (insertedId) return insertedId;
+
+    // Duplicate-orderId path: the transaction that actually landed committed
+    // under the same (userId, orderId) pair — look it up outside the aborted
+    // transaction and hand its id back so this call stays idempotent for the
+    // caller too.
+    const [existing] = await db
+      .select({ id: transactions.id })
+      .from(transactions)
+      .where(and(eq(transactions.userId, userId), eq(transactions.orderId, transactionData.orderId!)));
+    if (existing) return existing.id;
+
+    throw new Error(`Duplicate orderId ${transactionData.orderId} for user ${userId}, but no existing transaction found`);
   }
 
-  // Update loyalty account points
-  private async updateLoyaltyAccount(userId: string, pointsToAdd: number): Promise<void> {
-    const [existingAccount] = await db
+  // Update loyalty account points. Always called from within an active
+  // transaction (see recordTransaction) so the read-then-write here is
+  // consistent with the caller's other writes.
+  private async updateLoyaltyAccount(tx: Executor, userId: string, pointsToAdd: number): Promise<void> {
+    const [existingAccount] = await tx
       .select()
       .from(loyaltyAccounts)
       .where(eq(loyaltyAccounts.userId, userId));
 
     if (existingAccount) {
-      await db
+      await tx
         .update(loyaltyAccounts)
         .set({
           availablePoints: sql`${loyaltyAccounts.availablePoints} + ${pointsToAdd}`,
@@ -265,7 +303,7 @@ export class PointsEngineService {
     } else {
       // Create new loyalty account
       const accountNumber = await this.generateAccountNumber();
-      await db
+      await tx
         .insert(loyaltyAccounts)
         .values({
           userId,
@@ -279,9 +317,18 @@ export class PointsEngineService {
     }
   }
 
-  // Check and process tier upgrades
+  // Public entry point for standalone tier checks (no external callers today,
+  // kept for API compatibility) — opens its own transaction so the tier
+  // update and the loyalty-account update land together.
   async checkTierUpgrade(userId: string): Promise<void> {
-    const [user] = await db
+    await db.transaction((tx) => this.checkTierUpgradeInTx(tx, userId));
+  }
+
+  // Check and process tier upgrades against the given executor. Called with
+  // an active tx from recordTransaction so it's atomic with the points
+  // update above it; called with a fresh transaction from checkTierUpgrade.
+  private async checkTierUpgradeInTx(tx: Executor, userId: string): Promise<void> {
+    const [user] = await tx
       .select()
       .from(users)
       .where(eq(users.id, userId));
@@ -305,7 +352,7 @@ export class PointsEngineService {
 
     // Update tier if changed
     if (newTier !== currentTier) {
-      await db
+      await tx
         .update(users)
         .set({
           membershipTier: newTier,
@@ -315,7 +362,7 @@ export class PointsEngineService {
 
       // Update loyalty account
       const tierProgress = this.calculateTierProgress(currentPoints, newTier);
-      await db
+      await tx
         .update(loyaltyAccounts)
         .set({
           currentTier: newTier,
@@ -422,48 +469,58 @@ export class PointsEngineService {
     return parseInt(result[0]?.total?.toString() ?? '0');
   }
 
-  // Deduct points for redemption
+  // Deduct points for redemption. Wrapped in a transaction with a row lock on
+  // the user so two concurrent redemptions can't both pass the balance check
+  // against the same stale totalPoints value and drive the balance negative.
   async deductPoints(userId: string, points: number, description: string): Promise<boolean> {
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, userId));
+    return await db.transaction(async (tx) => {
+      // Lock the user row for the life of this transaction — mirrors the
+      // FOR UPDATE pattern in server/verificationAuth.ts:65-129.
+      const lockResult: any = await tx.execute(sql`
+        SELECT total_points
+        FROM users
+        WHERE id = ${userId}
+        FOR UPDATE
+      `);
+      const rows = lockResult.rows ?? lockResult;
+      const raw = rows?.[0] as Record<string, any> | undefined;
 
-    if (!user || (user.totalPoints ?? 0) < points) {
-      return false;
-    }
+      if (!raw) return false;
+      const currentPoints = Number(raw.total_points ?? raw.totalPoints ?? 0);
+      if (currentPoints < points) return false;
 
-    // Create deduction transaction
-    await db
-      .insert(transactions)
-      .values({
-        userId,
-        type: 'redemption',
-        pointsSpent: points,
-        description,
-        status: 'completed',
-      });
+      // Create deduction transaction
+      await tx
+        .insert(transactions)
+        .values({
+          userId,
+          type: 'redemption',
+          pointsSpent: points,
+          description,
+          status: 'completed',
+        });
 
-    // Update user points
-    await db
-      .update(users)
-      .set({
-        totalPoints: sql`${users.totalPoints} - ${points}`,
-        updatedAt: new Date(),
-      })
-      .where(eq(users.id, userId));
+      // Update user points
+      await tx
+        .update(users)
+        .set({
+          totalPoints: sql`${users.totalPoints} - ${points}`,
+          updatedAt: new Date(),
+        })
+        .where(eq(users.id, userId));
 
-    // Update loyalty account
-    await db
-      .update(loyaltyAccounts)
-      .set({
-        availablePoints: sql`${loyaltyAccounts.availablePoints} - ${points}`,
-        lastActivityDate: new Date(),
-        updatedAt: new Date(),
-      })
-      .where(eq(loyaltyAccounts.userId, userId));
+      // Update loyalty account
+      await tx
+        .update(loyaltyAccounts)
+        .set({
+          availablePoints: sql`${loyaltyAccounts.availablePoints} - ${points}`,
+          lastActivityDate: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(loyaltyAccounts.userId, userId));
 
-    return true;
+      return true;
+    });
   }
 }
 
