@@ -22,6 +22,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { processReceiptImage, isValidReceiptFile } from "./receiptProcessor";
+import { sendEmail, buildRedemptionEmail } from "./emailService";
 import {
   extractAndParseInvoice,
   namesMatch,
@@ -697,6 +698,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const userAfter = await storage.getUser(userId);
       console.log(`[REDEMPTION] User points after: ${userAfter?.totalPoints}`);
+
+      if (userAfter?.email && redemption.redemptionCode) {
+        const reward = await storage.getReward(redemptionData.rewardId);
+        const { subject, text } = buildRedemptionEmail(
+          userAfter.firstName || '',
+          reward?.name || 'your reward',
+          redemptionData.pointsSpent,
+          redemption.redemptionCode
+        );
+        sendEmail({ to: userAfter.email, subject, text }).catch((err) => {
+          console.error('Redemption email failed:', err);
+        });
+      }
 
       res.json(redemption);
     } catch (error) {

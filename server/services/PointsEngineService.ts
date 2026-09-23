@@ -10,6 +10,7 @@ import {
 } from '@shared/schema';
 import { eq, and, gte, lte, sum, sql } from 'drizzle-orm';
 import { campaignService } from './CampaignService';
+import { sendEmail, buildPointsEarnedEmail, buildTierUpgradeEmail } from '../emailService';
 
 export interface PointsCalculation {
   basePoints: number;
@@ -240,7 +241,20 @@ export class PointsEngineService {
     // Check for tier upgrades
     await this.checkTierUpgrade(userId);
 
-    // Notification system removed - points earned will be tracked in transaction history
+    if (pointsCalc.totalPoints > 0) {
+      const [user] = await db.select().from(users).where(eq(users.id, userId));
+      if (user?.email) {
+        const { subject, text } = buildPointsEarnedEmail(
+          user.firstName || '',
+          pointsCalc.totalPoints,
+          transactionData.description,
+          user.totalPoints ?? undefined
+        );
+        sendEmail({ to: user.email, subject, text }).catch((err) => {
+          console.error('Points-earned email failed:', err);
+        });
+      }
+    }
 
     return transaction.id;
   }
@@ -326,7 +340,12 @@ export class PointsEngineService {
         })
         .where(eq(loyaltyAccounts.userId, userId));
 
-      // Notification system removed - tier upgrade visible in user profile
+      if (user.email) {
+        const { subject, text } = buildTierUpgradeEmail(user.firstName || '', newTier);
+        sendEmail({ to: user.email, subject, text }).catch((err) => {
+          console.error('Tier-upgrade email failed:', err);
+        });
+      }
       console.log(`User ${userId} upgraded from ${currentTier} to ${newTier}`);
     }
   }
