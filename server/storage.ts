@@ -44,6 +44,7 @@ import { db } from "./db";
 import { eq, desc, sql, and, gte, lte } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import bcrypt from "bcrypt";
+import { sendEmail, buildPointsEarnedEmail } from "./emailService";
 
 export interface IStorage {
   // User operations (required for Replit Auth)
@@ -78,6 +79,7 @@ export interface IStorage {
   // Rewards operations
   getAllRewards(): Promise<Reward[]>;
   getActiveRewards(): Promise<Reward[]>;
+  getReward(id: string): Promise<Reward | undefined>;
   createReward(reward: InsertReward): Promise<Reward>;
   updateReward(id: string, updates: Partial<Reward>): Promise<Reward>;
   deactivateReward(id: string): Promise<void>;
@@ -452,6 +454,11 @@ export class DatabaseStorage implements IStorage {
       .orderBy(rewards.pointsCost);
   }
 
+  async getReward(id: string): Promise<Reward | undefined> {
+    const [reward] = await db.select().from(rewards).where(eq(rewards.id, id));
+    return reward;
+  }
+
   async createReward(reward: InsertReward): Promise<Reward> {
     const [newReward] = await db
       .insert(rewards)
@@ -497,6 +504,19 @@ export class DatabaseStorage implements IStorage {
         .update(users)
         .set({ pointsExpiryDate: expiryDate, updatedAt: new Date() })
         .where(eq(users.id, transaction.userId));
+
+      const user = await this.getUser(transaction.userId);
+      if (user?.email) {
+        const { subject, text } = buildPointsEarnedEmail(
+          user.firstName || '',
+          transaction.pointsEarned || 0,
+          transaction.description,
+          user.totalPoints ?? undefined
+        );
+        sendEmail({ to: user.email, subject, text }).catch((err) => {
+          console.error('Points-earned email failed:', err);
+        });
+      }
     }
 
     return newTransaction;

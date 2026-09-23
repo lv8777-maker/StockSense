@@ -3,7 +3,7 @@ import bcrypt from "bcrypt";
 import crypto from "crypto";
 import { storage } from "./storage";
 import { authLimiter } from "./rateLimiter";
-import { sendEmail, buildVerificationEmail } from "./emailService";
+import { sendEmail, buildVerificationEmail, buildWelcomeEmail } from "./emailService";
 import { db } from "./db";
 import { emailVerifications, users, transactions } from "@shared/schema";
 import { and, eq, sql } from "drizzle-orm";
@@ -136,6 +136,13 @@ export function setupVerificationAuth(app: Express) {
         isVerified: true,
         totalPoints: fresh?.totalPoints ?? req.session.user.totalPoints,
       };
+
+      if (fresh?.email) {
+        const { subject, text } = buildWelcomeEmail(fresh.firstName || '');
+        sendEmail({ to: fresh.email, subject, text }).catch((err) => {
+          console.error('Welcome email failed:', err);
+        });
+      }
 
       return res.json({ success: true, message: "Email and phone verified. Welcome aboard!" });
     } catch (error) {

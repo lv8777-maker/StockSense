@@ -5,6 +5,7 @@ import bcrypt from "bcrypt";
 import { storage } from "./storage";
 import { authLimiter, passwordLimiter } from "./rateLimiter";
 import { issueVerificationCode } from "./verificationAuth";
+import { sendEmail, buildPasswordResetEmail } from "./emailService";
 import type { Express, RequestHandler } from "express";
 
 // Accepts +27XXXXXXXXX or 0XXXXXXXXX, normalises to +27 form.
@@ -231,15 +232,15 @@ export async function setupEmailAuth(app: Express) {
         : `${req.protocol}://${req.headers.host}`;
       const resetUrl = `${baseUrl}/reset-password?token=${token}`;
 
-      // In production, send via email service. For now, include link in response for development.
-      const isDev = process.env.NODE_ENV !== "production";
+      const { subject, text } = buildPasswordResetEmail(user.firstName || '', resetUrl);
+      const result = await sendEmail({ to: user.email, subject, text });
 
-      console.log(`[Password Reset] Reset link for ${email}: ${resetUrl}`);
+      const isDev = process.env.NODE_ENV !== "production";
 
       res.json({
         success: true,
         message: "If an account exists for this email, a reset link has been sent.",
-        ...(isDev && { resetUrl, devNote: "Development mode: reset URL returned directly. Configure an email service for production." }),
+        ...(isDev && !result.delivered && { resetUrl, devNote: "Development mode: reset URL returned directly. Configure an email service for production." }),
       });
     } catch (error) {
       console.error("Forgot password error:", error);
