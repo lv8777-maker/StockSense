@@ -1,0 +1,1 @@
+- [PDF parser API](pdf-parser-api.md) — the installed parser uses its class-based API; do not rely on the removed legacy callable export.

@@ -1,12 +1,18 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Upload, Loader2, CheckCircle, Coins } from "lucide-react";
+import { FileText, Upload, Loader2, CheckCircle, Coins, Gift, Bookmark, ShoppingCart } from "lucide-react";
 import Navbar from "@/components/Navbar";
+import { apiRequest, getCsrfToken } from "@/lib/queryClient";
+import {
+  buildRedemptionRequest,
+  removeQualifiedReward,
+  type QualifiedReward,
+} from "@/lib/qualifiedRewards";
 
 interface InvoiceSubmission {
   id: string;
@@ -24,6 +30,7 @@ interface UploadResult {
   packageName: string;
   contractDuration: string;
   invoiceNumber: string;
+  newlyQualifiedRewards: QualifiedReward[];
 }
 
 export default function UploadInvoice() {
@@ -31,6 +38,8 @@ export default function UploadInvoice() {
   const queryClient = useQueryClient();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [result, setResult] = useState<UploadResult | null>(null);
+  const [qualifiedRewards, setQualifiedRewards] = useState<QualifiedReward[]>([]);
+  const qualifiedRewardsHeadingRef = useRef<HTMLHeadingElement>(null);
 
   const { data: submissions = [], isLoading } = useQuery<InvoiceSubmission[]>({
     queryKey: ["/api/invoices"],
@@ -40,8 +49,12 @@ export default function UploadInvoice() {
     mutationFn: async (file: File) => {
       const formData = new FormData();
       formData.append("invoice", file);
+      const csrfToken = await getCsrfToken();
       const response = await fetch("/api/invoices/upload", {
         method: "POST",
+        headers: {
+          "x-csrf-token": csrfToken,
+        },
         body: formData,
         credentials: "include",
       });
@@ -51,6 +64,7 @@ export default function UploadInvoice() {
     },
     onSuccess: (data) => {
       setResult(data);
+      setQualifiedRewards(data.newlyQualifiedRewards ?? []);
       toast({ title: "Points awarded!", description: data.message });
       queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
@@ -61,6 +75,7 @@ export default function UploadInvoice() {
     },
     onError: (error: Error) => {
       setResult(null);
+      setQualifiedRewards([]);
       toast({
         title: "Upload failed",
         description: error.message,
@@ -68,6 +83,46 @@ export default function UploadInvoice() {
       });
     },
   });
+
+  const redeemMutation = useMutation({
+    mutationFn: async (reward: QualifiedReward) => {
+      const response = await apiRequest(
+        "POST",
+        "/api/redemptions",
+        buildRedemptionRequest(reward),
+      );
+      return response.json();
+    },
+    onSuccess: async (_data, reward) => {
+      setQualifiedRewards((current) =>
+        removeQualifiedReward(current, reward.id),
+      );
+      toast({
+        title: "Reward redeemed!",
+        description: `${reward.name} has been added to your redemptions.`,
+      });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/redemptions"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/transactions"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/rewards"] }),
+      ]);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Redemption failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  useEffect(() => {
+    if (qualifiedRewards.length > 0) {
+      qualifiedRewardsHeadingRef.current?.focus();
+    }
+  }, [qualifiedRewards.length]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -93,6 +148,7 @@ export default function UploadInvoice() {
     }
     setSelectedFile(file);
     setResult(null);
+    setQualifiedRewards([]);
   };
 
   const handleUpload = () => {
@@ -124,7 +180,7 @@ export default function UploadInvoice() {
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-[#FDC800] transition-colors">
               <Input
                 type="file"
-                accept="application/pdf,.pdf"
+                accept=".pdf,application/pdf,application/x-pdf"
                 onChange={handleFileSelect}
                 className="hidden"
                 id="invoice-upload"
@@ -177,6 +233,103 @@ export default function UploadInvoice() {
                   </div>
                 </div>
               </div>
+            )}
+
+            {qualifiedRewards.length > 0 && (
+              <section
+                className="mt-6 space-y-4"
+                aria-labelledby="newly-qualified-rewards-heading"
+                aria-live="polite"
+              >
+                <div>
+                  <h3
+                    id="newly-qualified-rewards-heading"
+                    ref={qualifiedRewardsHeadingRef}
+                    tabIndex={-1}
+                    className="text-lg font-semibold text-gray-900"
+                  >
+                    You just unlocked {qualifiedRewards.length === 1 ? "a reward" : "new rewards"}
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    Redeem now, or save your points and claim it later from Rewards.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {qualifiedRewards.map((reward) => {
+                    const isRedeeming =
+                      redeemMutation.isPending &&
+                      redeemMutation.variables?.id === reward.id;
+
+                    return (
+                      <Card
+                        key={reward.id}
+                        className="overflow-hidden border-[#FDC800]/60 shadow-sm"
+                        data-testid={`qualified-reward-${reward.id}`}
+                      >
+                        {reward.imageUrl ? (
+                          <div className="h-36 overflow-hidden bg-gray-100">
+                            <img
+                              src={reward.imageUrl}
+                              alt={reward.name}
+                              className="h-full w-full object-cover"
+                            />
+                          </div>
+                        ) : (
+                          <div className="h-28 bg-gradient-to-br from-[#FDC800] to-[#FDC800]/60 flex items-center justify-center">
+                            <Gift aria-hidden="true" className="h-12 w-12 text-white drop-shadow-sm" />
+                          </div>
+                        )}
+                        <CardContent className="p-4 space-y-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <h4 className="font-semibold text-gray-900">
+                                {reward.name}
+                              </h4>
+                              <p className="text-sm capitalize text-gray-500">
+                                {reward.category}
+                              </p>
+                            </div>
+                            <Badge className="shrink-0 bg-[#FDC800] text-[#3C3C3B]">
+                              <Coins className="h-3 w-3 mr-1" />
+                              {reward.pointsCost}
+                            </Badge>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <Button
+                              onClick={() => redeemMutation.mutate(reward)}
+                              disabled={redeemMutation.isPending}
+                              className="bg-[#FDC800] hover:bg-[#FDC800]/90 text-[#3C3C3B]"
+                              data-testid={`button-redeem-qualified-${reward.id}`}
+                            >
+                              {isRedeeming ? (
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              ) : (
+                                <ShoppingCart className="h-4 w-4 mr-2" />
+                              )}
+                              Redeem now
+                            </Button>
+                            <Button
+                              variant="outline"
+                              onClick={() =>
+                                setQualifiedRewards((current) =>
+                                  removeQualifiedReward(current, reward.id),
+                                )
+                              }
+                              disabled={redeemMutation.isPending}
+                              data-testid={`button-save-qualified-${reward.id}`}
+                            >
+                              <Bookmark className="h-4 w-4 mr-2" />
+                              Save for later
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </section>
             )}
           </CardContent>
         </Card>

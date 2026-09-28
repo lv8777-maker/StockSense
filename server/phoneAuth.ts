@@ -2,10 +2,18 @@ import express from "express";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { storage } from "./storage";
+import { completeDevelopmentVerification } from "./verificationAuth";
 import { authLimiter } from "./rateLimiter";
 import type { Express, RequestHandler } from "express";
 
 export function getSession() {
+  if (!process.env.SESSION_SECRET) {
+    throw new Error(
+      "SESSION_SECRET environment variable is required but not set. " +
+      "Set it as a Secret (Replit Secrets pane or .env, never hardcoded) before starting the server."
+    );
+  }
+
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
   const pgStore = connectPg(session);
   const sessionStore = new pgStore({
@@ -15,7 +23,7 @@ export function getSession() {
     tableName: "sessions",
   });
   return session({
-    secret: process.env.SESSION_SECRET || 'maverick-loyalty-secret-key',
+    secret: process.env.SESSION_SECRET,
     store: sessionStore,
     resave: false,
     saveUninitialized: true, // Create sessions for unauthenticated users (required for CSRF)
@@ -53,6 +61,14 @@ export function normalizePhoneNumber(phoneNumber: string): string {
   
   return '+' + cleaned;
 }
+
+export function resolveSessionVerification(
+  sessionVerified: boolean | undefined,
+  persistedVerified: boolean | null | undefined,
+): boolean {
+  return sessionVerified === true || persistedVerified === true;
+}
+
 
 export async function setupPhoneAuth(app: Express) {
   // Session is now initialized in server/index.ts
@@ -146,11 +162,38 @@ export async function setupPhoneAuth(app: Express) {
   });
 
   // Get current user endpoint
-  app.get("/api/auth/user", (req: any, res) => {
+  app.get("/api/auth/user", async (req: any, res) => {
     if (!req.session?.user) {
       return res.status(401).json({ message: "Unauthorized" });
     }
-    
+
+    let currentUser = await storage.getUser(req.session.user.id);
+    if (process.env.NODE_ENV !== "production" && req.session.user.isVerified !== true) {
+      const verifiedUser = await completeDevelopmentVerification(req.session.user.id);
+      if (verifiedUser) {
+        currentUser = verifiedUser;
+      }
+    }
+
+    if (!currentUser) {
+      return res.status(404).json({ message: "User account not found" });
+    }
+
+    req.session.user = {
+      ...req.session.user,
+      email: currentUser.email,
+      firstName: currentUser.firstName,
+      lastName: currentUser.lastName,
+      phoneNumber: currentUser.phoneNumber,
+      currentPlan: currentUser.currentPlan,
+      membershipTier: currentUser.membershipTier,
+      totalPoints: currentUser.totalPoints,
+      isVerified: resolveSessionVerification(
+        req.session.user.isVerified,
+        currentUser.isVerified,
+      ),
+    };
+
     res.json(req.session.user);
   });
 

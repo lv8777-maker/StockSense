@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import TierProgressCard from "@/components/TierProgressCard";
 import TransactionSimulator from "@/components/TransactionSimulator";
+import RewardQualificationNotifications from "@/components/RewardQualificationNotifications";
 import { 
   Coins, 
   Gift, 
@@ -18,6 +19,7 @@ import {
   Calendar,
   ChevronRight
 } from "lucide-react";
+import type { Reward } from "@shared/schema";
 
 interface DashboardStats {
   totalPoints: number;
@@ -51,7 +53,7 @@ export default function MobileOptimizedDashboard() {
     queryKey: ["/api/dashboard/activity"],
   });
 
-  const { data: featuredRewards = [] } = useQuery({
+  const { data: featuredRewards = [] } = useQuery<Reward[]>({
     queryKey: ["/api/rewards", { featured: true }],
   });
 
@@ -104,6 +106,8 @@ export default function MobileOptimizedDashboard() {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4 mt-4">
+          <RewardQualificationNotifications />
+
           {/* Quick Stats */}
           <div className="grid grid-cols-2 gap-3">
             <Card>
@@ -196,7 +200,7 @@ export default function MobileOptimizedDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {featuredRewards.slice(0, 4).map((reward: any) => (
+                  {featuredRewards.slice(0, 4).map((reward) => (
                     <div key={reward.id} className="flex items-center space-x-3 p-3 border rounded-lg">
                       <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
                         <Gift className="h-5 w-5 text-gray-400" />

@@ -1,8 +1,6 @@
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
-const pdfParse: (buffer: Buffer) => Promise<{ text: string }> = require('pdf-parse');
 import Tesseract from 'tesseract.js';
 import { pdf as pdfToImg } from 'pdf-to-img';
+import { PDFParse } from 'pdf-parse';
 import { db } from './db';
 import { packages } from '@shared/schema';
 import { eq } from 'drizzle-orm';
@@ -16,7 +14,7 @@ export interface ParsedInvoice {
   packageName: string;
   tariff: string;
   activationDate: string;
-  contractDuration: string; // "24 Months" | "36 Months"
+  contractDuration: string; // "Month-to-Month" | "24 Months" | "36 Months"
 }
 
 export interface InvoiceProcessResult {
@@ -49,13 +47,19 @@ function findField(text: string, label: string): string | null {
   return m ? m[1].trim() : null;
 }
 
-function extractContractDuration(tariff: string): string | null {
-  const m = tariff.match(/(\d+)\s*MTH/i);
-  if (!m) return null;
-  const months = parseInt(m[1], 10);
-  if (months === 24) return '24 Months';
-  if (months === 36) return '36 Months';
+export function normalizeContractDuration(value: string): string | null {
+  if (/\bMTM\b/i.test(value) || /\bMONTH\s*[- ]?\s*TO\s*[- ]?\s*MONTH\b/i.test(value)) {
+    return 'Month-to-Month';
+  }
+
+  const duration = value.match(/\b(24|36)\s*(?:MTHS?|MONTHS?)\b/i);
+  if (duration?.[1] === '24') return '24 Months';
+  if (duration?.[1] === '36') return '36 Months';
   return null;
+}
+
+export function extractContractDuration(tariff: string): string | null {
+  return normalizeContractDuration(tariff);
 }
 
 /**
@@ -75,7 +79,10 @@ export function parseInvoiceText(text: string): ParsedInvoice | null {
     return null;
   }
 
-  const contractDuration = extractContractDuration(tariff) || '';
+  const contractDuration =
+    extractContractDuration(tariff) ||
+    extractContractDuration(packageName) ||
+    '';
 
   return {
     invoiceNumber: invoiceNumber.replace(/\s+/g, ''),
@@ -133,8 +140,13 @@ export async function extractAndParseInvoice(
 
   // Attempt 1: pdf-parse text extraction
   try {
-    const result = await pdfParse(buffer);
-    bestText = result.text || '';
+    const parser = new PDFParse({ data: buffer });
+    try {
+      const result = await parser.getText();
+      bestText = result.text || '';
+    } finally {
+      await parser.destroy();
+    }
     bestParsed = parseInvoiceText(bestText);
     if (bestParsed) return { parsed: bestParsed, text: bestText };
   } catch (err) {
@@ -190,10 +202,13 @@ export async function findPackage(
   contractDuration: string
 ): Promise<{ name: string; pointsAwarded: number } | null> {
   try {
+    const normalizedDuration = normalizeContractDuration(contractDuration);
+    if (!normalizedDuration) return null;
+
     const rows = await db
       .select()
       .from(packages)
-      .where(eq(packages.contractDuration, contractDuration));
+      .where(eq(packages.contractDuration, normalizedDuration));
 
     const invoiceNorm = normalize(invoicePackageName);
     const candidates = rows

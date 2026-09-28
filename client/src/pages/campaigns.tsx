@@ -55,13 +55,19 @@ interface Campaign {
   createdAt: string;
 }
 
+interface CampaignsResponse {
+  campaigns: Campaign[];
+  total: number;
+  hasMore: boolean;
+}
+
 export default function CampaignsPage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: campaignsData, isLoading } = useQuery({
+  const { data: campaignsData, isLoading } = useQuery<CampaignsResponse>({
     queryKey: ["/api/campaigns"],
   });
 

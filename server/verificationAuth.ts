@@ -3,7 +3,7 @@ import bcrypt from "bcrypt";
 import crypto from "crypto";
 import { storage } from "./storage";
 import { authLimiter } from "./rateLimiter";
-import { sendEmail, buildVerificationEmail } from "./emailService";
+import { sendEmail, buildVerificationEmail, buildWelcomeEmail } from "./emailService";
 import { db } from "./db";
 import { emailVerifications, users, transactions } from "@shared/schema";
 import { and, eq, sql } from "drizzle-orm";
@@ -15,6 +15,32 @@ export function generateCode(): string {
   // 6-digit numeric code, zero-padded.
   const n = crypto.randomInt(0, 1_000_000);
   return n.toString().padStart(6, '0');
+}
+
+export async function completeDevelopmentVerification(userId: string) {
+  if (process.env.NODE_ENV === "production") {
+    return storage.getUser(userId);
+  }
+
+  const verifiedUser = await storage.markUserVerified(userId);
+  try {
+    await storage.createTransaction({
+      userId,
+      type: "earning",
+      description: "Welcome to Maverick Loyalty! Sign-up bonus.",
+      amount: "0.00",
+      pointsEarned: 500,
+      pointsSpent: 0,
+      status: "completed",
+      orderId: `WELCOME-${userId.substring(0, 8)}`,
+    });
+  } catch (error: any) {
+    // The welcome transaction is unique per user, making the development
+    // bypass safe for repeated logins and restored browser sessions.
+    if (error?.code !== "23505") throw error;
+  }
+
+  return (await storage.getUser(userId)) ?? verifiedUser;
 }
 
 export async function issueVerificationCode(opts: {
@@ -136,6 +162,13 @@ export function setupVerificationAuth(app: Express) {
         isVerified: true,
         totalPoints: fresh?.totalPoints ?? req.session.user.totalPoints,
       };
+
+      if (fresh?.email) {
+        const { subject, text } = buildWelcomeEmail(fresh.firstName || '');
+        sendEmail({ to: fresh.email, subject, text }).catch((err) => {
+          console.error('Welcome email failed:', err);
+        });
+      }
 
       return res.json({ success: true, message: "Email and phone verified. Welcome aboard!" });
     } catch (error) {

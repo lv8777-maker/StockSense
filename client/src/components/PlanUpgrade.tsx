@@ -8,6 +8,8 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { availablePlans, getTierFromPlan } from "@/utils/tierMapping";
 import { ArrowUp, Crown, Gift } from "lucide-react";
+import { planUpgradeResponseSchema } from "@shared/apiContracts";
+import { parseApiResponse } from "@/lib/apiResponse";
 
 interface PlanUpgradeProps {
   currentPlan?: string;
@@ -22,7 +24,8 @@ export default function PlanUpgrade({ currentPlan, currentTier, currentPoints = 
 
   const upgradeMutation = useMutation({
     mutationFn: async (newPlan: string) => {
-      return await apiRequest("POST", "/api/auth/upgrade-plan", { newPlan });
+      const response = await apiRequest("POST", "/api/auth/upgrade-plan", { newPlan });
+      return parseApiResponse(response, planUpgradeResponseSchema);
     },
     onSuccess: (data) => {
       toast({
