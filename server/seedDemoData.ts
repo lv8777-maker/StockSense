@@ -10,6 +10,7 @@
 import { db } from "./db";
 import { rewards, campaigns } from "@shared/schema";
 import { sql } from "drizzle-orm";
+import { seedPackageCatalog } from "./seedPackages";
 
 const sampleRewards = [
   // Food & Drinks
@@ -290,6 +291,12 @@ async function seedDemoData() {
     }
     console.log(`✅ Added ${rewardsAdded} new rewards\n`);
 
+    console.log("📦 Seeding package catalogue...");
+    const packageSeedResult = await seedPackageCatalog();
+    console.log(
+      `✅ Package catalogue ready (${packageSeedResult.inserted} added, ${packageSeedResult.updated} refreshed)\n`,
+    );
+
     // Seed campaigns
     console.log("📢 Seeding campaigns...");
     for (const campaign of sampleCampaigns) {
@@ -301,6 +308,7 @@ async function seedDemoData() {
     console.log("🎉 Demo data seeding completed successfully!\n");
     console.log("📊 Summary:");
     console.log(`   - ${rewardsAdded} rewards added (skipped existing duplicates)`);
+    console.log(`   - ${packageSeedResult.inserted + packageSeedResult.updated} package mapping refreshed`);
     console.log(`   - ${sampleCampaigns.length} campaigns replaced (${sampleCampaigns.filter(c => c.status === 'active').length} active, ${sampleCampaigns.filter(c => c.status === 'draft').length} draft)`);
     console.log("\n✨ Your app is now ready for an impressive demo!\n");
 

@@ -4,6 +4,14 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { doubleCsrf } from "csrf-csrf";
 import { getSession } from "./phoneAuth";
+import { seedPackageCatalog } from "./seedPackages";
+
+if (!process.env.CSRF_SECRET) {
+  throw new Error(
+    "CSRF_SECRET environment variable is required but not set. " +
+    "Set it as a Secret (Replit Secrets pane or .env, never hardcoded) before starting the server."
+  );
+}
 
 const app = express();
 app.use(express.json());
@@ -20,7 +28,7 @@ app.use(getSession());
 
 // CSRF Protection setup - comes after session
 const csrfUtilities = doubleCsrf({
-  getSecret: () => process.env.CSRF_SECRET || "default-csrf-secret-change-in-production",
+  getSecret: () => process.env.CSRF_SECRET as string,
   getSessionIdentifier: (req) => (req as any).sessionID || "anonymous", // Uses express-session's sessionID
   cookieName: "x-csrf-token",
   cookieOptions: {
@@ -31,7 +39,7 @@ const csrfUtilities = doubleCsrf({
   },
   size: 64,
   ignoredMethods: ["GET", "HEAD", "OPTIONS"], // Don't protect read-only methods
-  getTokenFromRequest: (req) => req.headers["x-csrf-token"], // Explicitly check header
+  getCsrfTokenFromRequest: (req) => req.headers["x-csrf-token"], // Explicitly check header
 });
 
 // Make CSRF functions available to routes
@@ -72,14 +80,26 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  const packageSeed = await seedPackageCatalog();
+  log(
+    `package catalogue ready (${packageSeed.inserted} added, ${packageSeed.updated} refreshed)`,
+  );
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+    const isCsrfRejection = status === 403 && (
+      err.code === "EBADCSRFTOKEN" ||
+      /csrf/i.test(err.message || "")
+    );
+    const message = isCsrfRejection
+      ? "Your security session expired. Refresh the page and try again."
+      : err.message || "Internal Server Error";
 
     res.status(status).json({ message });
-    throw err;
+    if (status >= 500) {
+      console.error(err);
+    }
   });
 
   // importantly only setup vite in development and after

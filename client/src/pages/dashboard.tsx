@@ -9,6 +9,7 @@ import Navbar from "@/components/Navbar";
 import TierProgressCard from "@/components/TierProgressCard";
 import TransactionSimulator from "@/components/TransactionSimulator";
 import MobileOptimizedDashboard from "@/components/MobileOptimizedDashboard";
+import RewardQualificationNotifications from "@/components/RewardQualificationNotifications";
 import { tierDisplayNames, tierColors } from "@/utils/tierMapping";
 import { 
   Coins, 
@@ -23,26 +24,16 @@ import {
   AlertTriangle,
   X
 } from "lucide-react";
-
-interface DashboardStats {
-  totalPoints: number;
-  pointsThisMonth: number;
-  totalTransactions: number;
-  recentRedemptions: number;
-  currentTier: string;
-  nextTier?: string;
-  pointsToNext?: number;
-  tierProgress?: number;
-}
-
-interface RecentActivity {
-  id: string;
-  type: string;
-  description: string;
-  points: number;
-  date: string;
-  status: string;
-}
+import type { Offer, Reward } from "@shared/schema";
+import {
+  dashboardActivityResponseSchema,
+  dashboardStatsResponseSchema,
+  pointsExpiryResponseSchema,
+  type DashboardActivityResponse,
+  type DashboardStatsResponse,
+  type PointsExpiryResponse,
+} from "@shared/apiContracts";
+import { parseApiResponse } from "@/lib/apiResponse";
 
 interface PointsExpiryInfo {
   expiryDate: string | null;
@@ -56,24 +47,36 @@ export default function Dashboard() {
   const { isMobile } = useResponsive();
   const [expiryBannerDismissed, setExpiryBannerDismissed] = useState(false);
 
-  const { data: stats } = useQuery<DashboardStats>({
+  const { data: stats } = useQuery<DashboardStatsResponse>({
     queryKey: ["/api/dashboard/stats"],
+    queryFn: async () => parseApiResponse(
+      await fetch("/api/dashboard/stats", { credentials: "include" }),
+      dashboardStatsResponseSchema,
+    ),
   });
 
-  const { data: expiryInfo } = useQuery<PointsExpiryInfo>({
+  const { data: expiryInfo } = useQuery<PointsExpiryResponse>({
     queryKey: ["/api/points/expiry"],
+    queryFn: async () => parseApiResponse(
+      await fetch("/api/points/expiry", { credentials: "include" }),
+      pointsExpiryResponseSchema,
+    ),
     staleTime: 5 * 60 * 1000, // cache for 5 min
   });
 
-  const { data: recentActivity = [] } = useQuery<RecentActivity[]>({
+  const { data: recentActivity = [] } = useQuery<DashboardActivityResponse>({
     queryKey: ["/api/dashboard/activity"],
+    queryFn: async () => parseApiResponse(
+      await fetch("/api/dashboard/activity", { credentials: "include" }),
+      dashboardActivityResponseSchema,
+    ),
   });
 
-  const { data: personalizedOffers = [] } = useQuery({
+  const { data: personalizedOffers = [] } = useQuery<Offer[]>({
     queryKey: ["/api/offers/personalized"],
   });
 
-  const { data: featuredRewards = [] } = useQuery({
+  const { data: featuredRewards = [] } = useQuery<Reward[]>({
     queryKey: ["/api/rewards", { featured: true }],
   });
 
@@ -158,6 +161,8 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+       <RewardQualificationNotifications />
 
       {/* Quick Stats Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
@@ -295,7 +300,7 @@ export default function Dashboard() {
             <CardContent>
               <div className="space-y-3">
                 {personalizedOffers.length > 0 ? (
-                  personalizedOffers.slice(0, 3).map((offer: any) => (
+                  personalizedOffers.slice(0, 3).map((offer) => (
                     <div key={offer.id} className="p-3 bg-gradient-to-r from-[#FDC800]/10 to-yellow-50 rounded-lg border">
                       <h4 className="font-semibold text-sm text-[#3C3C3B]">
                         {offer.title}
@@ -342,7 +347,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {featuredRewards.slice(0, 3).map((reward: any) => (
+              {featuredRewards.slice(0, 3).map((reward) => (
                 <div key={reward.id} className="p-4 border rounded-lg hover:shadow-md transition-shadow">
                   <div className="aspect-video bg-gray-200 rounded-lg mb-3 flex items-center justify-center">
                     <Gift className="h-8 w-8 text-gray-400" />

@@ -21,6 +21,8 @@ import {
 import { Download, ShoppingCart, DollarSign, Coins } from "lucide-react";
 import type { Transaction } from "@shared/schema";
 import Navbar from "@/components/Navbar";
+import { transactionStatsResponseSchema, type TransactionStatsResponse } from "@shared/apiContracts";
+import { parseApiResponse } from "@/lib/apiResponse";
 
 export default function History() {
   const [filterPeriod, setFilterPeriod] = useState("all");
@@ -29,8 +31,12 @@ export default function History() {
     queryKey: ["/api/transactions"],
   });
 
-  const { data: transactionStats } = useQuery({
+  const { data: transactionStats } = useQuery<TransactionStatsResponse>({
     queryKey: ["/api/transactions/stats"],
+    queryFn: async () => parseApiResponse(
+      await fetch("/api/transactions/stats", { credentials: "include" }),
+      transactionStatsResponseSchema,
+    ),
   });
 
   const getStatusBadge = (type: string, status: string) => {

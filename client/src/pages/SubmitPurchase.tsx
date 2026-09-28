@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
-import { apiRequest } from "@/lib/queryClient";
+import { getCsrfToken } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,24 +47,31 @@ export default function SubmitPurchase() {
     mutationFn: async (file: File) => {
       const formData = new FormData();
       formData.append('receipt', file);
+      const csrfToken = await getCsrfToken();
       
       // Use fetch directly for file upload (FormData requires browser to set Content-Type with boundary)
       const response = await fetch("/api/receipts/upload", {
         method: "POST",
+        headers: {
+          "x-csrf-token": csrfToken,
+        },
         body: formData,
         credentials: "include",
       });
       
       if (!response.ok) {
         const error = await response.json().catch(() => ({ message: "Upload failed" }));
-        throw new Error(error.message || `HTTP ${response.status}: ${response.statusText}`);
+        const message = response.status === 403
+          ? error.message || "Your security session expired. Refresh the page and try again."
+          : error.message || `HTTP ${response.status}: ${response.statusText}`;
+        throw new Error(message);
       }
       
       return await response.json();
     },
     onSuccess: (data: any) => {
       toast({
-        title: "✅ Receipt Processed Successfully!",
+        title: "Receipt Processed Successfully",
         description: `${data.processed.description}`,
       });
       
@@ -72,6 +79,9 @@ export default function SubmitPurchase() {
       queryClient.invalidateQueries({ queryKey: ["/api/receipts"] });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       queryClient.invalidateQueries({ queryKey: ["/api/transactions"] });
+       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/reward-notifications"] });
+       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/activity"] });
       
       // Clear form after successful upload
       setTimeout(() => {
@@ -93,10 +103,14 @@ export default function SubmitPurchase() {
     const file = e.target.files?.[0];
     if (file) {
       // Validate file type
-      if (!file.type.startsWith('image/')) {
+      const isPdf =
+        file.type === 'application/pdf' ||
+        file.type === 'application/x-pdf' ||
+        /\.pdf$/i.test(file.name);
+      if (!file.type.startsWith('image/') && !isPdf) {
         toast({
           title: "Invalid File Type",
-          description: "Please upload an image file (JPEG, PNG, or WebP)",
+          description: "Please upload a PDF, JPEG, PNG, or WebP file",
           variant: "destructive",
         });
         return;
@@ -114,12 +128,16 @@ export default function SubmitPurchase() {
 
       setSelectedFile(file);
       
-      // Create preview
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      // Only image files can be shown in the inline image preview.
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setPreview(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+      } else {
+        setPreview(null);
+      }
     }
   };
 
@@ -168,7 +186,7 @@ export default function SubmitPurchase() {
               Upload Receipt
             </CardTitle>
             <CardDescription>
-              Take a photo or upload an image of your purchase receipt. We'll detect the purchase type and award points automatically.
+              Take a photo or upload a PDF or image of your purchase receipt. We'll detect the purchase type and award points automatically.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -176,8 +194,7 @@ export default function SubmitPurchase() {
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-[#FDC800] transition-colors">
               <Input
                 type="file"
-                accept="image/*"
-                capture="environment"
+                accept=".pdf,application/pdf,application/x-pdf,image/jpeg,image/png,image/webp"
                 onChange={handleFileSelect}
                 className="hidden"
                 id="receipt-upload"
@@ -188,7 +205,7 @@ export default function SubmitPurchase() {
                 <p className="text-sm text-gray-600 mb-2">
                   {selectedFile ? selectedFile.name : "Click to upload or take a photo"}
                 </p>
-                <p className="text-xs text-gray-500">PNG, JPG, WebP up to 10MB</p>
+                <p className="text-xs text-gray-500">PDF, PNG, JPG, or WebP up to 10MB</p>
               </label>
             </div>
 
@@ -255,12 +272,12 @@ export default function SubmitPurchase() {
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <div>
-              <h4 className="font-semibold text-gray-900 mb-1">📱 Airtime Purchase</h4>
+              <h4 className="font-semibold text-gray-900 mb-1">Airtime Purchase</h4>
               <p className="text-gray-600">2 points per R1 spent (minimum R100)</p>
               <p className="text-xs text-gray-500">Example: R250 airtime = 500 points</p>
             </div>
             <div>
-              <h4 className="font-semibold text-gray-900 mb-1">🎧 Accessory Purchase</h4>
+              <h4 className="font-semibold text-gray-900 mb-1">Accessory Purchase</h4>
               <p className="text-gray-600">Tiered rewards based on total amount:</p>
               <ul className="text-xs text-gray-500 ml-4 mt-1 space-y-1">
                 <li>• R500-R999 = 100 points</li>
@@ -269,7 +286,7 @@ export default function SubmitPurchase() {
               </ul>
             </div>
             <div>
-              <h4 className="font-semibold text-gray-900 mb-1">📶 Plan Subscription</h4>
+              <h4 className="font-semibold text-gray-900 mb-1">Plan Subscription</h4>
               <p className="text-gray-600">Points based on plan tier (100-500 points)</p>
               <p className="text-xs text-gray-500">Receipt must show plan name (Essential, Plus, Deluxe, etc.)</p>
             </div>
