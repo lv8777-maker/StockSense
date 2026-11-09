@@ -1,0 +1,61 @@
+name: Daily customer report
+
+on:
+  schedule:
+    # 06:00 UTC = 08:00 South African time. GitHub may delay scheduled jobs.
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      deliver:
+        description: 'Send today’s report if not already claimed. Leave false to check authentication only.'
+        type: boolean
+        default: false
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: daily-customer-report
+  cancel-in-progress: false
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      REPORT_URL: https://rewardsclub.mavericktelecom.co.za/internal/jobs/daily-customer-report
+      DELIVER: ${{ github.event_name == 'schedule' || inputs.deliver }}
+    steps:
+      # No repository checkout, customer data, API key or database secret is needed.
+      - name: Authenticate and trigger the daily report
+        shell: bash
+        run: |
+          node --input-type=module <<'JS'
+          const audience = process.env.REPORT_URL;
+          const tokenUrl = new URL(process.env.ACTIONS_ID_TOKEN_REQUEST_URL);
+          tokenUrl.searchParams.set("audience", audience);
+          const tokenResponse = await fetch(tokenUrl, {
+            headers: { Authorization: `Bearer ${process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN}` },
+            signal: AbortSignal.timeout(30000),
+          });
+          if (!tokenResponse.ok) throw new Error("GitHub identity request failed");
+          const { value } = await tokenResponse.json();
+          if (typeof value !== "string" || !value) throw new Error("GitHub identity is unavailable");
+          console.log(`::add-mask::${value}`);
+          const response = await fetch(audience, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${value}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ dryRun: process.env.DELIVER !== "true" }),
+            signal: AbortSignal.timeout(120000),
+            redirect: "error",
+          });
+          if (!response.ok || !response.headers.get("content-type")?.includes("application/json")) {
+            throw new Error(`Daily report trigger failed (HTTP ${response.status}). Check publication and the administrator report status.`);
+          }
+          const result = await response.json();
+          if (!["authenticated", "accepted", "not_due"].includes(result.status)) {
+            throw new Error("Daily report requires operator review");
+          }
+          console.log(`Daily report status: ${result.status}`);
+          JS
